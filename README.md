@@ -1,1 +1,1 @@
-# JeansGNN
+This is a README
