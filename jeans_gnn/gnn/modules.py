@@ -1,7 +1,8 @@
 
 import logging
 from typing import Optional, Union
-LOGGER = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)
 
 import torch
 import pytorch_lightning as pl
@@ -71,9 +72,9 @@ class BaseModule(pl.LightningModule):
             optimizer_hparams = {"optimizer": {}, "scheduler": {}}
 
         # print out hyperparameters
-        LOGGER.info("Hyperparameters:")
+        logger.info("Hyperparameters:")
         for hparams in self.hparams:
-            LOGGER.info(f"{hparams}: {self.hparams[hparams]}")
+            logger.info(f"{hparams}: {self.hparams[hparams]}")
 
         # init model, transformation, and optimizer
         self.model = model(**model_hparams)
@@ -100,6 +101,12 @@ class BaseModule(pl.LightningModule):
                     'frequency': 1
                 }
             }
+
+    def training_step(self, batch, batch_idx):
+        raise NotImplementedError()
+
+    def validation_step(self, batch, batch_idx):
+        raise NotImplementedError()
 
     def _get_optimizer(self) -> Optimizer:
         hparams = self.hparams.optimizer_hparams['optimizer']
@@ -129,11 +136,6 @@ class BaseModule(pl.LightningModule):
                 "optimizer must be 'ReduceLROnPlateau or AttentionScheduler'"\
                 ", not {}".format(scheduler))
 
-    def training_step(self, batch, batch_idx):
-        raise NotImplementedError()
-
-    def validation_step(self, batch, batch_idx):
-        raise NotImplementedError()
 
 class MAFModule(BaseModule):
     """
@@ -181,7 +183,7 @@ class MAFModule(BaseModule):
                                         transform_hparams, optimizer_hparams)
 
     def training_step(self, batch, batch_idx) -> FloatTensor:
-        batch_size = len(batch[0])
+        batch_size = len(batch)
 
         # apply forward and return log-likelihood and loss
         log_prob = self.model.log_prob(batch)
@@ -192,7 +194,7 @@ class MAFModule(BaseModule):
         return loss
 
     def validation_step(self, batch, batch_idx) -> FloatTensor:
-        batch_size = len(batch[0])
+        batch_size = len(batch)
 
         # apply forward and return log-likelihood and loss
         log_prob = self.model.log_prob(batch)

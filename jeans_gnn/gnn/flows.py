@@ -1,47 +1,36 @@
 
-from typing import Callable
 
-import torch
-import torch.nn.functional as F
 from nflows import distributions, transforms, flows
 
-def _get_activation(activation: str) -> Callable[[torch.Tensor], torch.Tensor]:
-    """ Parse activation function """
-    if activation == 'tanh':
-        return torch.tanh
-    elif activation == 'relu':
-        return torch.relu
-    elif activation == 'sigmoid':
-        return torch.sigmoid
-    else:
-        raise RuntimeError(
-            "activation should be tanh/relu/sigmoid, not {}".format(activation))
+from .utils import get_activation
 
 def build_maf(
         features: int, hidden_features: int, context_features: int,
         num_layers: int, num_blocks: int, activation: str = 'tanh'
     ) -> flows.Flow:
-    """ Build masked autoregressive flow (MAF) layers
+    """ Build a Masked Autoregressive Flow (MAF) model
 
     Parameters
     ----------
     features : int
-        Number of features
+        The number of features in the input data
     hidden_features : int
-        Number of hidden features
+        The number of hidden features in the MAF model
     context_features : int
-        Number of context features
+        The number of context features in the MAF model
     num_layers : int
-        Number of MAF layers
+        The number of layers in the MAF model
     num_blocks : int
-        Number of MAF blocks
+        The number of blocks in each layer of the MAF model (i.e. the number of
+        autoregressive transformations in each layer)
     activation : str
-        Activation function
+        The activation function to use in the MAF model. Should be one of
+        'tanh', 'relu', or 'sigmoid'
 
     Returns
     -------
-    maf : nflows.flows.Flow
-        Masked autoregressive flow models
+    maf : nflows.Flow
+        The MAF model
     """
     transform = []
     transform.append(transforms.CompositeTransform(
@@ -55,7 +44,7 @@ def build_maf(
                         num_blocks=num_blocks,
                         use_residual_blocks=False,
                         random_mask=False,
-                        activation=_get_activation(activation),
+                        activation= get_activation(activation),
                         dropout_probability=0.0,
                         use_batch_norm=True,
                     ),
