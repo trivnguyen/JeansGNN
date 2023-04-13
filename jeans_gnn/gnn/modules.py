@@ -42,9 +42,10 @@ class BaseModule(pl.LightningModule):
 
     def __init__(
             self, model: torch.nn.Module, transform: torch.nn.Module,
-            model_hparams: Optional[dict] = None,
-            transform_hparams: Optional[dict] = None,
-            optimizer_hparams: Optional[dict] = None
+            model_hparams: Optional[dict] = {},
+            transform_hparams: Optional[dict] = {},
+            optimizer_hparams: Optional[dict] = {},
+            scheduler_hparams: Optional[dict] = {}
         ) -> None:
         """
         Parameters
@@ -53,23 +54,17 @@ class BaseModule(pl.LightningModule):
                 Model module
             transform: torch.nn.Module
                 Transformation module
-            model_hparams: Optional(dict).
-                Model hyperparameters. Default: None
-            transform_hparams: Optional(dict).
-                Transformation hyperparameters. Default: None
-            optimizer_hparams: Optional(dict).
-                Optimizer hyperparameters. Default: None
-
+            model_hparams: dict, optional
+                Model hyperparameters
+            transform_hparams: dict, optional
+                Transformation hyperparameters
+            optimizer_hparams: dict, optional
+                Optimizer hyperparameters
+            scheduler_hparams: dict, optional
+                LR scheduler hyperparameters
         """
         super(BaseModule, self).__init__()
         self.save_hyperparameters()
-
-        if model_hparams is None:
-            model_hparams = {}
-        if transform_hparams is None:
-            transform_hparams = {}
-        if optimizer_hparams is None:
-            optimizer_hparams = {"optimizer": {}, "scheduler": {}}
 
         # print out hyperparameters
         logger.info("Hyperparameters:")
@@ -110,7 +105,7 @@ class BaseModule(pl.LightningModule):
 
     def _get_optimizer(self) -> Optimizer:
         hparams = self.hparams.optimizer_hparams['optimizer']
-        optimizer = hparams.pop('optimizer')
+        optimizer = hparams.pop('type')
         if optimizer == "Adam":
             return torch.optim.Adam(self.parameters(), **hparams)
         elif optimizer == "AdamW":
@@ -122,20 +117,18 @@ class BaseModule(pl.LightningModule):
     def _get_scheduler(self, optimizer: Optimizer) -> Union[_LRScheduler, None]:
         """ Return LR scheduler """
         hparams = self.hparams.optimizer_hparams['scheduler']
-        scheduler = hparams.pop('scheduler')
+        scheduler = hparams.pop('type')
         if scheduler is None:
             return None
         elif scheduler == 'ReduceLROnPlateau':
             return torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer, 'min', **hparams)
         elif scheduler == 'AttentionScheduler':
-            print(hparams)
             return schedulers.AttentionScheduler(optimizer, **hparams)
         else:
             raise NotImplementedError(
-                "optimizer must be 'ReduceLROnPlateau or AttentionScheduler'"\
-                ", not {}".format(scheduler))
-
+                "scheduler must be 'ReduceLROnPlateau' or 'AttentionScheduler', "
+                "not {}".format(scheduler))
 
 class MAFModule(BaseModule):
     """
@@ -160,9 +153,10 @@ class MAFModule(BaseModule):
     """
     def __init__(
             self, model: torch.nn.Module, transform: torch.nn.Module,
-            model_hparams: Optional[dict] = None,
-            transform_hparams: Optional[dict] = None,
-            optimizer_hparams: Optional[dict] = None
+            model_hparams: Optional[dict] = {},
+            transform_hparams: Optional[dict] = {},
+            optimizer_hparams: Optional[dict] = {},
+            scheduler_hparams: Optional[dict] = {}
         ) -> None:
         """
         Parameters
@@ -171,13 +165,12 @@ class MAFModule(BaseModule):
                 Model module
             transform: torch.nn.Module
                 Transformation module
-            model_hparams: Optional(dict).
-                Model hyperparameters. Default: None
-            transform_hparams: Optional(dict).
-                Transformation hyperparameters. Default: None
-            optimizer_hparams: Optional(dict).
-                Optimizer hyperparameters. Default: None
-
+            model_hparams: dict, optional
+                Model hyperparameters
+            transform_hparams: dict, optional
+                Transformation hyperparameters
+            optimizer_hparams: dict, optional
+                Optimizer hyperparameters
         """
         super(MAFModule, self).__init__(model, transform, model_hparams,
                                         transform_hparams, optimizer_hparams)

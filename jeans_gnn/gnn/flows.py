@@ -5,32 +5,25 @@ from nflows import distributions, transforms, flows
 from .utils import get_activation
 
 def build_maf(
-        features: int, hidden_features: int, context_features: int,
+        channels: int, hidden_channels: int, context_channels: int,
         num_layers: int, num_blocks: int, activation: str = 'tanh'
     ) -> flows.Flow:
-    """ Build a Masked Autoregressive Flow (MAF) model
+    """ Build a MAF normalizing flow
 
     Parameters
     ----------
-    features : int
-        The number of features in the input data
-    hidden_features : int
-        The number of hidden features in the MAF model
-    context_features : int
-        The number of context features in the MAF model
-    num_layers : int
-        The number of layers in the MAF model
-    num_blocks : int
-        The number of blocks in each layer of the MAF model (i.e. the number of
-        autoregressive transformations in each layer)
-    activation : str
-        The activation function to use in the MAF model. Should be one of
-        'tanh', 'relu', or 'sigmoid'
-
-    Returns
-    -------
-    maf : nflows.Flow
-        The MAF model
+    channels: int
+        Number of channels
+    hidden_channels: int
+        Number of hidden channels
+    context_channels: int
+        Number of context channels
+    num_layers: int
+        Number of layers
+    num_blocks: int
+        Number of blocks
+    activation: str
+        Name of the activation function
     """
     transform = []
     transform.append(transforms.CompositeTransform(
@@ -38,9 +31,9 @@ def build_maf(
             transforms.CompositeTransform(
                 [
                     transforms.MaskedAffineAutoregressiveTransform(
-                        features=features,
-                        hidden_features=hidden_features,
-                        context_features=context_features,
+                        features=channels,
+                        hidden_features=hidden_channels,
+                        context_features=context_channels,
                         num_blocks=num_blocks,
                         use_residual_blocks=False,
                         random_mask=False,
@@ -48,13 +41,13 @@ def build_maf(
                         dropout_probability=0.0,
                         use_batch_norm=True,
                     ),
-                    transforms.RandomPermutation(features=features),
+                    transforms.RandomPermutation(features=channels),
                 ]
             )
             for _ in range(num_layers)
         ]
     ))
     transform = transforms.CompositeTransform(transform)
-    distribution = distributions.StandardNormal((features,))
+    distribution = distributions.StandardNormal((channels,))
     maf = flows.Flow(transform, distribution)
     return maf

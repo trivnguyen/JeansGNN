@@ -6,6 +6,7 @@ import torch_geometric
 from torch_geometric.nn import ChebConv, GATConv, GCNConv
 
 from .flows import build_maf
+from .modules import MAFModule
 
 
 class DeepSet(torch.nn.Module):
@@ -46,9 +47,9 @@ class GraphRegressor(torch.nn.Module):
             hidden_fc_layers: int = 1,
             num_fc_layers: int = 1,
             graph_layer_name: str = "ChebConv",
-            graph_layer_params: dict = {},
+            graph_layer_params: Optional[dict] = None,
             activation: str = "relu",
-            activation_params: dict = {},
+            activation_params: Optional[dict] = None,
             flow_params: dict = {}
             ):
         """
@@ -104,7 +105,7 @@ class GraphRegressor(torch.nn.Module):
 
         # Create MAF normalizing flow layers
         self.flows = build_maf(
-            features=out_channels, context_features=hidden_fc_layers,
+            channels=out_channels, context_channels=hidden_fc_layers,
             **flow_params)
 
     def forward(self, x, edge_index, batch, edge_weight=None):
@@ -143,7 +144,6 @@ class GraphRegressor(torch.nn.Module):
         x = self.fc_layers[-1](x)
 
         return x
-
 
     def log_prob(self, batch,return_context=False):
         """ Calculate log-likelihood from batch """
@@ -198,3 +198,16 @@ class GraphRegressor(torch.nn.Module):
             raise ValueError(f"Graph layer {graph_layer_name} not implemented")
         return self.GRAPH_LAYERS[graph_layer_name](
             in_dim, out_dim, **graph_layer_params)
+
+class GraphRegressorModule(MAFModule):
+    """ Graph Regressor module """
+    def __init__(
+            self, model_hparams: Optional[dict] = {},
+            transform_hparams: Optional[dict] = {},
+            optimizer_hparams: Optional[dict] = {},
+            scheduler_hparams: Optional[dict] = {},
+        ) -> None:
+        super(GraphRegressorModule, self).__init__(
+            GraphRegressor, None,
+            model_hparams, transform_hparams, optimizer_hparams,
+            scheduler_hparams)
