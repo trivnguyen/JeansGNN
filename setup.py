@@ -13,7 +13,10 @@ setup(
         'numpy',
         'pandas',
         'scipy',
-        'astropy'
+        'astropy',
+        'torch_geometric',
+        'pytorch_lightning',
+        'pyyaml',
     ],
     # entry_points={
     #     'console_scripts': [
