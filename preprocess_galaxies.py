@@ -143,8 +143,8 @@ def main():
         'train_frac', 0.9)
 
     # Find and read galaxies as a graph dataset
-    node_features, graph_features, headers = utils.datasets.read_graph_datasets(
-        utils.paths.find_galaxies(FLAGS.galaxy_name), to_array=True)
+    node_features, graph_features, headers = utils.dataset.read_graph_dataset(
+        utils.paths.find_galaxy(FLAGS.galaxy_name), to_array=True)
     num_galaxies = headers['num_galaxies']
 
     # Create a new graph dataset with node and graph features
@@ -234,7 +234,7 @@ def main():
 
         # write to disk
         filename = os.path.join(output_dir, '{}.h5'.format(flag))
-        utils.write_graph_dataset(
+        utils.dataset.write_graph_dataset(
             filename, flag_node_features, flag_graph_features,
             num_stars[idx_split], flag_headers
         )

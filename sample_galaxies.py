@@ -262,7 +262,7 @@ def main():
         )
 
     logger.info('Writing kinematics to {}'.format(FLAGS.output))
-    utils.write_graph_dataset(
+    utils.dataset.write_graph_dataset(
         FLAGS.output, node_features, graph_features, num_stars,
         headers=headers)
 
