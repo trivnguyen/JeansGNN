@@ -18,6 +18,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 
+DEFAULT_LABELS_ORDER = (
+    'dm_gamma', 'dm_log_r_dm', 'dm_log_rho_0', 'dm_p',
+    'stellar_log_r_star', 'stellar_p', 'df_beta_0', 'df_log_r_a',
+)
+
+
 # parse command line arguments
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -99,7 +105,8 @@ def parse_graph_features(graph_features):
             graph_features['stellar_r_star'])
     elif graph_features.get('stellar_r_star_r_dm') is not None:
         new_graph_features['stellar_log_r_star'] = (
-            np.log10(graph_features['stellar_r_star_r_dm']) + new_graph_features['dm_log_r_dm'])
+            np.log10(graph_features['stellar_r_star_r_dm'])
+            + new_graph_features['dm_log_r_dm'])
     else:
         raise ValueError('Cannot find stellar radius')
 
@@ -108,10 +115,12 @@ def parse_graph_features(graph_features):
         new_graph_features['df_log_r_a'] = np.log10(graph_features['df_r_a'])
     elif graph_features.get('df_r_a_r_dm') is not None:
         new_graph_features['df_log_r_a'] = (
-            np.log10(graph_features['df_r_a_r_dm']) + new_graph_features['dm_log_r_dm'])
+            np.log10(graph_features['df_r_a_r_dm'])
+            + new_graph_features['dm_log_r_dm'])
     elif graph_features.get('df_r_a_r_star') is not None:
         new_graph_features['df_log_r_a'] = (
-            np.log10(graph_features['df_r_a_r_star']) + new_graph_features['stellar_log_r_star'])
+            np.log10(graph_features['df_r_a_r_star'])
+            + new_graph_features['stellar_log_r_star'])
     else:
         raise ValueError('Cannot find DF scale radius')
 
@@ -128,8 +137,10 @@ def main():
         config = yaml.load(f, Loader=yaml.FullLoader)
     projection  =config['preprocess'].get('projection')
     error_los = config['preprocess'].get('error_los', 0)
-    labels_order = config['preprocess']['labels_order']
-    train_frac = config['preprocess']['train_frac']
+    labels_order = config['preprocess'].get(
+        'labels_order', list(DEFAULT_LABELS_ORDER))
+    train_frac = config['preprocess'].get(
+        'train_frac', 0.9)
 
     # Find and read galaxies as a graph dataset
     node_features, graph_features, headers = utils.datasets.read_graph_datasets(
@@ -143,7 +154,6 @@ def main():
         'vel': [],
         'vel_error': [],
     }
-
     for i in range(num_galaxies):
         # extract galaxy
         nodes, graph = get_graph(node_features, graph_features, i)
