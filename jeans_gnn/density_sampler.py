@@ -4,16 +4,14 @@ import os
 import sys
 from typing import List, Optional, Tuple, Union
 
-import yaml
-
 import pytorch_lightning as pl
 import torch
-import utils
+import yaml
 from pytorch_lightning.loggers import CSVLogger
-from torch_geometric.loader import DataLoader
+from torch_geometric.data import DataLoader
 
+import utils
 from .gnn import graph_regressors, transforms
-
 
 class DensitySampler():
     """ Sample the dark matter density from kinematic data
@@ -131,7 +129,9 @@ class DensitySampler():
             'scheduler_params': self.scheduler_params,
             'transform_params': self.transform_params,
         }
-        with open(os.path.join(self.output_dir, 'params.yaml'), 'w') as f:
+        with open(
+            os.path.join(self.output_dir, 'params.yaml'),
+            'w', encoding='utf-8') as f:
             yaml.dump(params, f, default_flow_style=False)
 
     def _setup_logger(self):
@@ -162,6 +162,7 @@ class DensitySampler():
 
     @static
     def load_from_dir(
+            self,
             run_dir: str,
             model_type: Optional[str] = None,
             model_params: Optional[dict] = None,
@@ -210,71 +211,6 @@ class DensitySampler():
         sampler = DensitySampler(**params)
         return sampler
 
-    def create_dataloader(
-            self,
-            dataset_name: Optional[str] = None,
-            dataset_path: Optional[str] = None,
-            flag: str = 'train',
-            verbose: bool = True,
-            **kwargs
-        ):
-        """ Create a data loader from a dataset
-
-        Parameters
-        ----------
-        dataset_name: str
-            Name of the dataset
-        dataset_path: str
-            Path to the dataset. Ignored if dataset_name is provided
-        flag: str
-            Flag of the dataset. Only used if dataset_name is provided
-        verbose: bool
-            Whether to print out the dataset information
-        kwargs: dict
-            Keyword arguments for DataLoader
-        Returns
-        -------
-        dataloader: torch_geometric.loader.DataLoader
-        """
-        # find dataset path, return None if not found
-        if dataset_name is not None:
-            path = utils.get_dataset_path(dataset_name, flag=flag)
-            if path is None:
-                self.logger.info(f"Dataset {dataset_name} not found. Return None.")
-                return None
-        elif dataset_path is not None:
-            path = dataset_path
-            if not os.path.exists(path):
-                self.logger.info(f"Dataset {path} not found. Return None.")
-                return None
-        else:
-            self.logger.info("No dataset provided. Return None.")
-            return None
-
-        # read the dataset
-        node_features, graph_features, headers = utils.read_graph_dataset(
-            path, features_list=['pos', 'vel', 'labels'])
-
-        # print out dataset information
-        if verbose:
-            self.logger.info(f"Dataset: {path}")
-            self.logger.info(f"Number of graphs: {len(node_features)}")
-            self.logger.info("Headers:")
-            for header in headers:
-                self.logger.info(f"{header}: {headers[header]}")
-
-        # create a graph dataset
-        dataset = []
-        for i in range(len(node_features)):
-            pos = node_features[i]['pos']
-            vel = node_features[i]['vel']
-            labels = graph_features[i]['labels']
-            graph = self.transforms(pos, vel, labels)
-            dataset.append(graph)
-
-        # create a data loader
-        return DataLoader(dataset, **kwargs)
-
     def fit(
             self,
             dataset_name: Optional[str] = None,
@@ -318,14 +254,16 @@ class DensitySampler():
         # Create data loaders
         pin_memory = True if torch.cuda.is_available() else False
         if train_loader is None:
-            train_loader = self.create_dataloader(
-                dataset_name=dataset_name, dataset_path=train_dataset_path,
-                flag='train', batch_size=batch_size, shuffle=True,
+            train_loader = utils.create_dataloader(
+                self.transform, dataset_name=dataset_name,
+                dataset_path=train_dataset_path, flag='train',
+                batch_size=batch_size, shuffle=True,
                 num_workers=num_workers, pin_memory=pin_memory)
         if val_loader is None:
-            val_loader = self.create_dataloader(
-                dataset_name=dataset_name, dataset_path=val_dataset_path,
-                flag='val', batch_size=batch_size, shuffle=False,
+            val_loader = utils.create_dataloader(
+                self.transform, dataset_name=dataset_name,
+                dataset_path=val_dataset_path, flag='val',
+                batch_size=batch_size, shuffle=False,
                 num_workers=num_workers, pin_memory=pin_memory)
         if val_loader is None:
             self.logger.info(
