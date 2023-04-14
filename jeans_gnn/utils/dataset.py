@@ -127,6 +127,9 @@ def read_graph_dataset(path, features_list=None, concat=False, to_array=True):
         node_features = {}
         for key in headers['node_features']:
             if key in features_list:
+                if f.get(key) is None:
+                    logger.warning(f"Feature {key} not found in {path}")
+                    continue
                 if concat:
                     node_features[key] = f[key][:]
                 else:
@@ -136,6 +139,9 @@ def read_graph_dataset(path, features_list=None, concat=False, to_array=True):
         graph_features = {}
         for key in headers['graph_features']:
             if key in features_list:
+                if f.get(key) is None:
+                    logger.warning(f"Feature {key} not found in {path}")
+                    continue
                 graph_features[key] = f[key][:]
 
     # convert node features to numpy array of dtype='object'
@@ -185,7 +191,7 @@ def create_dataloader(
     # read the dataset
     node_features, graph_features, headers = read_graph_dataset(
         path, features_list=['pos', 'vel', 'labels'])
-    num_graphs = len(graph_features['labels'])
+    num_graphs = headers['num_galaxies']
 
     # print out dataset information
     if verbose:
@@ -198,9 +204,9 @@ def create_dataloader(
     # create a graph dataset
     dataset = []
     for i in range(num_graphs):
-        pos = node_features[i]['pos']
-        vel = node_features[i]['vel']
-        labels = graph_features[i]['labels']
+        pos = node_features['pos'][i]
+        vel = node_features['vel'][i]
+        labels = graph_features['labels'][i]
         graph = transform(pos, vel, labels)
         dataset.append(graph)
 

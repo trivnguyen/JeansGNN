@@ -26,6 +26,7 @@ def find_dataset(name, flag=None):
         path = os.path.join(path, flag + '.hdf5')
         if not os.path.exists(path):
             return None
+        return path
 
 
 def find_galaxy(name):
