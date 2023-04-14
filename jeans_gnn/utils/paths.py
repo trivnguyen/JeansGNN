@@ -23,7 +23,7 @@ def find_dataset(name, flag=None):
     if flag is None:
         return path
     else:
-        path = os.path.join(path, flag)
+        path = os.path.join(path, flag + '.hdf5')
         if not os.path.exists(path):
             return None
 
