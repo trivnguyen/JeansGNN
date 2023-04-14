@@ -96,13 +96,17 @@ class PhaseSpaceGraphProcessor():
         """
         Parameters
         ----------
-        pos: torch.Tensor
-            Position tensor
-        vel: torch.Tensor
-            Velocity tensor
+        pos: torch.Tensor or numpy.ndarray
+            Position tensor. Shape (N, 2)
+        vel: torch.Tensor or numpy.ndarray
+            Velocity tensor. Shape (N, 1)
         label: torch.Tensor
             Label tensor. If None, return data without label
         """
+        # convert from numpy to torch
+        pos = torch.from_numpy(pos)
+        vel = torch.from_numpy(vel)
+
         # transform into 1D feature vector
         x = self.feature_preprocess(pos, vel)
 
