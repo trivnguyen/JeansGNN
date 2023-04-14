@@ -41,29 +41,31 @@ class BaseModule(pl.LightningModule):
     """
 
     def __init__(
-            self, model: torch.nn.Module, transform: torch.nn.Module,
-            model_hparams: Optional[dict] = {},
-            transform_hparams: Optional[dict] = {},
-            optimizer_hparams: Optional[dict] = {},
-            scheduler_hparams: Optional[dict] = {}
+            self, model: torch.nn.Module,
+            model_hparams: Optional[dict] = None,
+            optimizer_hparams: Optional[dict] = None,
+            scheduler_hparams: Optional[dict] = None
         ) -> None:
         """
         Parameters
         ----------
             model: torch.nn.Module
                 Model module
-            transform: torch.nn.Module
-                Transformation module
             model_hparams: dict, optional
                 Model hyperparameters
-            transform_hparams: dict, optional
-                Transformation hyperparameters
             optimizer_hparams: dict, optional
                 Optimizer hyperparameters
             scheduler_hparams: dict, optional
                 LR scheduler hyperparameters
         """
         super(BaseModule, self).__init__()
+        if model_hparams is None:
+            model_hparams = {}
+        if optimizer_hparams is None:
+            optimizer_hparams = {}
+        if scheduler_hparams is None:
+            scheduler_hparams = {}
+
         self.save_hyperparameters()
 
         # print out hyperparameters
@@ -73,7 +75,6 @@ class BaseModule(pl.LightningModule):
 
         # init model, transformation, and optimizer
         self.model = model(**model_hparams)
-        self.transform = transform(**transform_hparams)
 
     def forward(self, x, *args, **kargs):
         """ Forward pass """
@@ -152,19 +153,16 @@ class MAFModule(BaseModule):
         Test step
     """
     def __init__(
-            self, model: torch.nn.Module, transform: torch.nn.Module,
-            model_hparams: Optional[dict] = {},
-            transform_hparams: Optional[dict] = {},
-            optimizer_hparams: Optional[dict] = {},
-            scheduler_hparams: Optional[dict] = {}
+            self, model: torch.nn.Module,
+            model_hparams: Optional[dict] = None,
+            optimizer_hparams: Optional[dict] = None,
+            scheduler_hparams: Optional[dict] = None
         ) -> None:
         """
         Parameters
         ----------
             model: torch.nn.Module
                 Model module
-            transform: torch.nn.Module
-                Transformation module
             model_hparams: dict, optional
                 Model hyperparameters
             transform_hparams: dict, optional
@@ -172,8 +170,8 @@ class MAFModule(BaseModule):
             optimizer_hparams: dict, optional
                 Optimizer hyperparameters
         """
-        super(MAFModule, self).__init__(model, transform, model_hparams,
-                                        transform_hparams, optimizer_hparams)
+        super(MAFModule, self).__init__(
+            model, model_hparams, optimizer_hparams, scheduler_hparams)
 
     def training_step(self, batch, batch_idx) -> FloatTensor:
         batch_size = len(batch)

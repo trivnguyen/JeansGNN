@@ -50,7 +50,7 @@ class GraphRegressor(torch.nn.Module):
             graph_layer_params: Optional[dict] = None,
             activation: str = "relu",
             activation_params: Optional[dict] = None,
-            flow_params: dict = {}
+            flow_params: dict = None
             ):
         """
         Parameters
@@ -78,8 +78,12 @@ class GraphRegressor(torch.nn.Module):
         flow_params: dict
             Parameters of the normalizing flow
         """
-
         super().__init__()
+
+        if graph_layer_params is None:
+            graph_layer_params = {}
+        if activation_params is None:
+            activation_params = {}
 
         self.graph_layer_name = graph_layer_name
 
@@ -203,11 +207,8 @@ class GraphRegressorModule(MAFModule):
     """ Graph Regressor module """
     def __init__(
             self, model_hparams: Optional[dict] = {},
-            transform_hparams: Optional[dict] = {},
             optimizer_hparams: Optional[dict] = {},
             scheduler_hparams: Optional[dict] = {},
         ) -> None:
         super(GraphRegressorModule, self).__init__(
-            GraphRegressor, None,
-            model_hparams, transform_hparams, optimizer_hparams,
-            scheduler_hparams)
+            GraphRegressor, model_hparams, optimizer_hparams, scheduler_hparams)
