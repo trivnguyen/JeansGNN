@@ -17,6 +17,7 @@ setup(
         'torch_geometric',
         'pytorch_lightning',
         'pyyaml',
+        'tensorboard',
     ],
     # entry_points={
     #     'console_scripts': [
