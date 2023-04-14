@@ -2,8 +2,6 @@
 import logging
 from typing import Optional, Union
 
-logger = logging.getLogger(__name__)
-
 import torch
 import pytorch_lightning as pl
 from torch import FloatTensor
@@ -58,7 +56,7 @@ class BaseModule(pl.LightningModule):
             scheduler_hparams: dict, optional
                 LR scheduler hyperparameters
         """
-        super(BaseModule, self).__init__()
+        super().__init__()
         if model_hparams is None:
             model_hparams = {}
         if optimizer_hparams is None:
@@ -67,11 +65,6 @@ class BaseModule(pl.LightningModule):
             scheduler_hparams = {}
 
         self.save_hyperparameters()
-
-        # print out hyperparameters
-        logger.info("Hyperparameters:")
-        for hparams in self.hparams:
-            logger.info(f"{hparams}: {self.hparams[hparams]}")
 
         # init model, transformation, and optimizer
         self.model = model(**model_hparams)
@@ -105,7 +98,7 @@ class BaseModule(pl.LightningModule):
         raise NotImplementedError()
 
     def _get_optimizer(self) -> Optimizer:
-        hparams = self.hparams.optimizer_hparams['optimizer']
+        hparams = self.hparams.optimizer_hparams.copy()
         optimizer = hparams.pop('type')
         if optimizer == "Adam":
             return torch.optim.Adam(self.parameters(), **hparams)
@@ -117,7 +110,7 @@ class BaseModule(pl.LightningModule):
 
     def _get_scheduler(self, optimizer: Optimizer) -> Union[_LRScheduler, None]:
         """ Return LR scheduler """
-        hparams = self.hparams.optimizer_hparams['scheduler']
+        hparams = self.hparams.scheduler_hparams.copy()
         scheduler = hparams.pop('type')
         if scheduler is None:
             return None
@@ -170,7 +163,7 @@ class MAFModule(BaseModule):
             optimizer_hparams: dict, optional
                 Optimizer hyperparameters
         """
-        super(MAFModule, self).__init__(
+        super().__init__(
             model, model_hparams, optimizer_hparams, scheduler_hparams)
 
     def training_step(self, batch, batch_idx) -> FloatTensor:
