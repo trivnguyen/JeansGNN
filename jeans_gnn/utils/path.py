@@ -2,20 +2,31 @@
 import os
 from .. import envs
 
-def find_dataset(name):
+def find_dataset(name, flag=None):
     """ Find the dataset directory
+    Parameters
+    ----------
+    name : str
+        Name of the dataset.
+    flag : str
+        Flag of the dataset. Either 'train', 'val', or 'test'.
+        If None, return the dataset directory.
 
     Returns
     -------
     path : str
-        Path to the dataset.
+        Path to the dataset. If flag is None, return the dataset directory.
     """
     path = os.path.join(envs.DEFAULT_DATASETS_DIR, name)
-    # return None if dataset not found
     if not os.path.exists(path):
         return None
-        # raise FileNotFoundError("Dataset not found: {}".format(path))
-    return path
+    if flag is None:
+        return path
+    else:
+        path = os.path.join(path, flag)
+        if not os.path.exists(path):
+            return None
+
 
 def find_galaxy(name):
     """ Find the galaxy path.
@@ -29,5 +40,4 @@ def find_galaxy(name):
     # return None if galaxy not found
     if not os.path.exists(path):
         return None
-        raise FileNotFoundError("Galaxy not found: {}".format(path))
     return path
