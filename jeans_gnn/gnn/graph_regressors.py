@@ -44,7 +44,7 @@ class GraphRegressor(torch.nn.Module):
             self, in_channels: int, out_channels: int,
             hidden_graph_channels: int = 1,
             num_graph_layers: int = 1,
-            hidden_fc_layers: int = 1,
+            hidden_fc_channels: int = 1,
             num_fc_layers: int = 1,
             graph_layer_name: str = "ChebConv",
             graph_layer_params: Optional[dict] = None,
@@ -63,7 +63,7 @@ class GraphRegressor(torch.nn.Module):
             Hidden dimension
         num_graph_layers: int
             Number of graph layers
-        hidden_fc_layers: int
+        hidden_fc_channels: int
             Hidden dimension of the fully connected layers
         num_fc_layers: int
             Number of fully connected layers
@@ -99,8 +99,8 @@ class GraphRegressor(torch.nn.Module):
         # Create FC layers
         self.fc_layers = torch.nn.ModuleList()
         for i in range(num_fc_layers):
-            n_in = hidden_fc_layers if i == 0 else hidden_fc_layers
-            n_out = hidden_fc_layers
+            n_in = hidden_fc_channels if i == 0 else hidden_fc_channels
+            n_out = hidden_fc_channels
             self.fc_layers.append(torch.nn.Linear(n_in, n_out))
 
         # Create activation function
@@ -109,7 +109,7 @@ class GraphRegressor(torch.nn.Module):
 
         # Create MAF normalizing flow layers
         self.flows = build_maf(
-            channels=out_channels, context_channels=hidden_fc_layers,
+            channels=out_channels, context_channels=hidden_fc_channels,
             **flow_params)
 
     def forward(self, x, edge_index, batch, edge_weight=None):
@@ -153,7 +153,6 @@ class GraphRegressor(torch.nn.Module):
         """ Calculate log-likelihood from batch """
         context = self.forward(
             batch.x, batch.edge_index, batch.batch, edge_weight=batch.edge_weight)
-
         log_prob = self.flows.log_prob(batch.y, context=context)
 
         if return_context:
@@ -206,9 +205,9 @@ class GraphRegressor(torch.nn.Module):
 class GraphRegressorModule(MAFModule):
     """ Graph Regressor module """
     def __init__(
-            self, model_hparams: Optional[dict] = {},
-            optimizer_hparams: Optional[dict] = {},
-            scheduler_hparams: Optional[dict] = {},
+            self, model_hparams: Optional[dict] = None,
+            optimizer_hparams: Optional[dict] = None,
+            scheduler_hparams: Optional[dict] = None,
         ) -> None:
-        super(GraphRegressorModule, self).__init__(
+        super().__init__(
             GraphRegressor, model_hparams, optimizer_hparams, scheduler_hparams)
