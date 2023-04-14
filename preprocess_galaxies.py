@@ -6,9 +6,7 @@ import logging
 import os
 import time
 
-import astropy.units as u
 import numpy as np
-import pandas as pd
 import yaml
 
 from jeans_gnn import utils, envs
@@ -143,8 +141,11 @@ def main():
         'train_frac', 0.9)
 
     # Find and read galaxies as a graph dataset
+    galaxy_path = utils.paths.find_galaxy(FLAGS.galaxy_name)
+    if galaxy_path is None:
+        raise ValueError('Cannot find galaxy {}'.format(FLAGS.galaxy_name))
     node_features, graph_features, headers = utils.dataset.read_graph_dataset(
-        utils.paths.find_galaxy(FLAGS.galaxy_name), to_array=True)
+        galaxy_path, to_array=True)
     num_galaxies = headers['num_galaxies']
 
     # Create a new graph dataset with node and graph features
@@ -179,6 +180,7 @@ def main():
             labels_order.remove(k)
     ppr_graph_features['labels'] = np.array(
         [ppr_graph_features[k] for k in labels_order]).T
+    print(ppr_graph_features['labels'].shape)
 
     # Write dataset to disk
     # create default headers
@@ -215,7 +217,7 @@ def main():
             for k, v in ppr_node_features.items()
         }
         flag_graph_features = {
-            k: np.take(v, idx_split)
+            k: np.take(v, idx_split, axis=0)
             for k, v in ppr_graph_features.items()
         }
         flag_graph_features['original_idx'] = idx_split
@@ -233,7 +235,7 @@ def main():
         }
 
         # write to disk
-        filename = os.path.join(output_dir, '{}.h5'.format(flag))
+        filename = os.path.join(output_dir, '{}.hdf5'.format(flag))
         utils.dataset.write_graph_dataset(
             filename, flag_node_features, flag_graph_features,
             num_stars[idx_split], flag_headers
