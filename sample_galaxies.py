@@ -35,7 +35,7 @@ def parse_args():
              'directory is specified in the config file')
     parser.add_argument(
         '--name', type=str, default='default',
-        help='Name of dataset')
+        help='Name of galaxy sets to generate')
     parser.add_argument(
         '--num-galaxies', type=int, default=10000,
         help='Number of galaxies to sample')
@@ -154,7 +154,7 @@ def parse_parameters(
     return galaxy_model
 
 def main():
-    """ Sample the stellar kinematics of dwarf galaxies """
+    """ Sample the 6D stellar kinematics of dwarf galaxies """
     FLAGS = parse_args()
 
     # Load config file
