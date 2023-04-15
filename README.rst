@@ -9,6 +9,12 @@ JeansGNN can also perform the unbinned Jeans analysis as described in Chang et a
 
 The framework is built on top of the `PyTorch Geometric <https://pytorch-geometric.readthedocs.io/en/latest/>`_ and `PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/latest/>`_ library.
 
+:Authors:
+    Tri Nguyen
+    Siddharth Mishra-Sharma
+    Reuel Williams
+    Lina Necib
+:Version: 0.0.0 (2023-04-14)
 
 Installation
 ------------
@@ -22,7 +28,7 @@ To install JeansGNN, simply run:
 Usage
 -----
 Currently, only the GNN method refered in Nguyen et al. (2023) [1]_ is implemented.
-You can find the example of how to use the GNN method in `tutorials/example_training.ipynb`.
+You can find the example of how to use the GNN method in ``tutorials/example_training.ipynb``.
 
 The unbinned Jeans analysis in Chang et al. (2021) [2]_ is being migrated to JeansGNN. The original repo can be found at `https://github.com/trivnguyen/dsphs_jeans`.
 
@@ -41,7 +47,7 @@ We welcome contributions to JeansGNN! To contribute, please contact Tri Nguyen (
 License
 -------
 
-JeansGNN is licensed under the MIT license. See `LICENSE.md` for more information.
+JeansGNN is licensed under the MIT license. See ``LICENSE.md`` for more information.
 
 References
 ----------
