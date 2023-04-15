@@ -1,6 +1,6 @@
 
 import os
-from .. import envs
+from . import envs
 
 def find_dataset(name, flag=None):
     """ Find the dataset directory

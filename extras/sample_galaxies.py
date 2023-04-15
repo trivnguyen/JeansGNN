@@ -12,7 +12,8 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from jeans_gnn import utils, envs
+import jeans_gnn as jgnn
+from utils import envs, paths
 
 # set agama unit to be in Msun, kpc, km/s
 agama.setUnits(mass=1 * u.Msun, length=1*u.kpc, velocity=1 * u.km /u.s)
@@ -262,7 +263,7 @@ def main():
         )
 
     logger.info('Writing kinematics to {}'.format(FLAGS.output))
-    utils.dataset.write_graph_dataset(
+    jgnn.utils.dataset.write_graph_dataset(
         FLAGS.output, node_features, graph_features, num_stars,
         headers=headers)
 

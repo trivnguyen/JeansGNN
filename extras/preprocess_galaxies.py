@@ -9,7 +9,8 @@ import time
 import numpy as np
 import yaml
 
-from jeans_gnn import utils, envs
+import jeans_gnn as jgnn
+from utils import envs, paths
 
 # define logger
 logger = logging.getLogger(__name__)
@@ -141,10 +142,10 @@ def main():
         'train_frac', 0.9)
 
     # Find and read galaxies as a graph dataset
-    galaxy_path = utils.paths.find_galaxy(FLAGS.galaxy_name)
+    galaxy_path = paths.find_galaxy(FLAGS.galaxy_name)
     if galaxy_path is None:
         raise ValueError('Cannot find galaxy {}'.format(FLAGS.galaxy_name))
-    node_features, graph_features, headers = utils.dataset.read_graph_dataset(
+    node_features, graph_features, headers = jgnn.utils.dataset.read_graph_dataset(
         galaxy_path, to_array=True)
     num_galaxies = headers['num_galaxies']
 
@@ -236,7 +237,7 @@ def main():
 
         # write to disk
         filename = os.path.join(output_dir, '{}.hdf5'.format(flag))
-        utils.dataset.write_graph_dataset(
+        jgnn.utils.dataset.write_graph_dataset(
             filename, flag_node_features, flag_graph_features,
             num_stars[idx_split], flag_headers
         )
