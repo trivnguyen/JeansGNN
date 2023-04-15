@@ -3,6 +3,7 @@ import os
 import glob
 from typing import List, Optional, Tuple, Union
 import logging
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,8 @@ class DensitySampler():
         self.run_name = run_name
         self.run_prefix = run_prefix
         self.output_dir = None
+        self.model = None
+        self.transform = None
 
         # set up logger, model, and output directory
         self._setup_dir(resume=resume)
@@ -117,14 +120,11 @@ class DensitySampler():
     def _setup_dir(self, resume: bool = False):
         """ Set up the output directory and write all params into yaml """
         # create an output directory
+        # overwrite existing directory if not resuming
         self.output_dir = os.path.join(self.run_prefix, self.run_name)
-
-        # raise error if output directory already exists and not resuming
         if not resume:
             if os.path.exists(self.output_dir):
-                raise FileExistsError(
-                    f'Output directory {self.output_dir} already exists')
-
+                shutil.rmtree(self.output_dir)
         os.makedirs(self.output_dir, exist_ok=True)
 
         # write all params into yaml
@@ -275,8 +275,93 @@ class DensitySampler():
         # fit the model
         trainer.fit(self.model, train_loader, val_loader)
 
-    def sample(self):
-        raise NotImplementedError
+    def sample(
+            self,
+            num_samples: int,
+            dataset_name: Optional[str] = None,
+            dataset_flag: str = 'test',
+            dataset_path: Optional[str] = None,
+            loader: Optional[DataLoader] = None,
+            batch_size: int = 1,
+            num_workers: int = 1,
+            device: Optional[torch.device] = None,
+            return_labels: bool = False,
+            to_numpy: bool = True,
+        ):
+        """ Sample the posterior distribution
+
+        Parameters
+        ----------
+        num_samples: int
+            Number of samples to generate
+        dataset_name: str
+            Name of the dataset
+        dataset_flag: str
+            Flag of the dataset. Only used if dataset_name is provided
+        dataset_path: str
+            Path to the dataset. Ignored if dataset_name is provided
+        loader: torch_geometric.loader.DataLoader
+            Data loader. Ignored if dataset_name or dataset_path is provided
+        batch_size: int
+            Batch size
+        num_workers: int
+            Number of workers for data loading
+        device: torch.device
+            Device to use. If None, use the device of the model
+        return_labels: bool
+            Whether to return the labels
+        to_numpy: bool
+            Whether to convert the samples and labels to numpy arrays
+
+        Returns
+        -------
+        posteriors: torch.Tensor or np.ndarray
+            Samples from the posterior distribution
+        labels: torch.Tensor or np.ndarray
+            Labels of the samples
+        """
+        # Set device
+        if device is None:
+            device = self.model.device
+
+        # Create data loader
+        pin_memory = True if torch.cuda.is_available() else False
+        if loader is None:
+            loader = utils.dataset.create_dataloader(
+                self.transform, dataset_name=dataset_name,
+                dataset_path=dataset_path, flag=dataset_flag,
+                batch_size=batch_size, shuffle=False,
+                num_workers=num_workers, pin_memory=pin_memory)
+        if loader is None:
+            raise ValueError(
+                "Dataset not found. Please provide either "
+                "dataset_name or dataset_path")
+
+        # Make sure the model is in eval mode
+        self.model.eval()
+        with torch.no_grad():
+            # Iterate through the data loader
+            posteriors = []
+            labels = []
+            for batch in loader:
+                batch = batch.to(device)
+                posterior = self.model.sample(
+                    batch, num_samples=num_samples)
+                posteriors.append(posterior)
+                if return_labels:
+                    labels.append(batch.y)
+        posteriors = torch.cat(posteriors, dim=0)
+
+        if return_labels:
+            labels = torch.cat(labels, dim=0)
+            if to_numpy:
+                labels = labels.detach().numpy()
+                posteriors = posteriors.detach().numpy()
+            return posteriors, labels
+        else:
+            if to_numpy:
+                posteriors = posteriors.detach().numpy()
+            return posteriors
 
     @staticmethod
     def load_from_dir(
