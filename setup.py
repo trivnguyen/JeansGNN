@@ -20,5 +20,6 @@ setup(
         'pytorch_lightning',
         'pyyaml',
         'tensorboard',
+        'bilby'
     ],
 )
