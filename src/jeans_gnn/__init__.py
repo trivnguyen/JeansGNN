@@ -1,2 +1,2 @@
 
-from . import density_sampler, gnn, physics, utils
+from . import density_sampler, gnn, utils
