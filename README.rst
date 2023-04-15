@@ -3,7 +3,11 @@
 JeansGNN: Neural Simulation-based Inference with GNN for Jeans Modeling
 ==================================================
 
-JeansGNN is a neural simulation-based inference framework for Jeans modeling based on Nguyen et al. (2023) [1]. The framework is built on top of the `PyTorch Geometric <https://pytorch-geometric.readthedocs.io/en/latest/>`_ and `PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/latest/>`_ library.
+JeansGNN is a neural simulation-based inference framework for Jeans modeling based on Nguyen et al. (2023) [1]. You can also find our paper on arXiv at `https://arxiv.org/abs/2208.12825`.
+
+
+The framework is built on top of the `PyTorch Geometric <https://pytorch-geometric.readthedocs.io/en/latest/>`_ and `PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/latest/>`_ library.
+
 
 Installation
 ------------
