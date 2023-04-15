@@ -396,6 +396,7 @@ class DensitySampler():
             run_dir = os.path.join(run_prefix, run_name)
 
         # check if the directory exists
+        logger.info(f"Reloading prior run from {run_dir}")
         if not os.path.exists(run_dir):
             raise ValueError(f"Directory {run_dir} does not exist")
 
@@ -405,13 +406,13 @@ class DensitySampler():
 
         # overwrite params if provided
         if model_params is not None:
-            params['model_params'] = model_params
+            params['model_params'].update(model_params)
         if optimizer_params is not None:
-            params['optimizer_params'] = optimizer_params
+            params['optimizer_params'].update(optimizer_params)
         if scheduler_params is not None:
-            params['scheduler_params'] = scheduler_params
+            params['scheduler_params'].update(scheduler_params)
         if transform_params is not None:
-            params['transform_params'] = transform_params
+            params['transform_params'].update(transform_params)
         params['config_file'] = config_file
 
         # create a DensitySampler
