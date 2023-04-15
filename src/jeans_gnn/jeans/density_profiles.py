@@ -19,9 +19,9 @@ class DensityProfile:
         """
         self.parameters = parameters
 
-    def log_density(self, r: np.ndarray) -> np.ndarray:
-        """ Compute the log10 density profile """
-        raise NotImplementedError
+    def __call__(self, r: np.ndarray, *args, **kargs) -> np.ndarray:
+        """ Compute the density profile """
+        return self.density(r, *args, **kargs)
 
     def density(self, r: np.ndarray, *args, **kargs) -> np.ndarray:
         """ Compute the density profile """
@@ -35,6 +35,9 @@ class DensityProfile:
             return integrate.cumtrapz(self.density(r), dx=dr, initial=0)
         return integrate.cumtrapz(self.density(r), r, initial=0)
 
+    def log_density(self, r: np.ndarray) -> np.ndarray:
+        """ Compute the log10 density profile """
+        raise NotImplementedError
 
 class GeneralizedNFW(DensityProfile):
     """ Generalized NFW profile """
@@ -53,7 +56,7 @@ class GeneralizedNFW(DensityProfile):
         """ Compute the log density of the generalized NFW profile.
         Equation:
         ```
-        log10 rho(r) = log10 rho_0 - gamma * log10(r / r_dm) + (3 - gamma) * log10(1 + r / r_dm)
+        log10 rho(r) = log10 rho_0 - gamma * log10(r / r_dm) - (3 - gamma) * log10(1 + r / r_dm)
         ```
         where:
             rho_0: central density
@@ -63,10 +66,8 @@ class GeneralizedNFW(DensityProfile):
         rho_0 = self.parameters["rho_0"]
         r_dm = self.parameters["r_dm"]
         gamma = self.parameters["gamma"]
-
         x = r / r_dm
-        return np.log10(rho_0) - (gamma) * np.log10(x) + (3 - gamma) * np.log10(1 + x)
-
+        return np.log10(rho_0) - gamma * np.log10(x) - (3 - gamma) * np.log10(1 + x)
 
 class Plummer(DensityProfile):
     """ The Plummer profile. Can be used for 2D or 3D."""

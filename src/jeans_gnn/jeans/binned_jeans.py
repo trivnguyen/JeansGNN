@@ -87,7 +87,7 @@ class BinnedLPModel(BilbyModule):
         - V1 and V2
         """
         profile = self.profile(**self.parameters)
-        Sigma_hat = profile.density(self.Rbins_ce)
+        Sigma_hat = profile.density(self.Rbins_ce, projected=True)  # lp always projected
         delta_Sigma = self.Sigma - Sigma_hat
         return - 0.5 * np.sum(delta_Sigma**2 / (self.V1 - self.V2 * delta_Sigma))
 
