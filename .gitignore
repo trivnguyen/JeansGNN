@@ -1,4 +1,5 @@
 tutorials/example_training
+tutorials/example_binned_jeans
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
