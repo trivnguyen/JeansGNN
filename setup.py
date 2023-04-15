@@ -7,11 +7,13 @@ setup(
     description='GNN for Jeans modeling',
     author='Tri Nguyen',
     author_email='tnguy@mit.edu',
-    packages=find_packages(),
+    packages=find_packages('src'),
+    package_dir={'': 'src'},
+    url='https://github.com/trivnguyen/JeansGNN/',
+    license='MIT',
     install_requires=[
         # list your package's dependencies here
         'numpy',
-        'pandas',
         'scipy',
         'astropy',
         'torch_geometric',
@@ -19,9 +21,4 @@ setup(
         'pyyaml',
         'tensorboard',
     ],
-    # entry_points={
-    #     'console_scripts': [
-    #         # list any command-line scripts here
-    #     ],
-    # },
 )
