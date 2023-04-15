@@ -1,0 +1,30 @@
+model: !!python/name:jeans_gnn.gnn.graph_regressors.GraphRegressor ''
+model_hparams:
+  activation: relu
+  flow_params:
+    activation: tanh
+    hidden_channels: 128
+    num_blocks: 2
+    num_layers: 4
+  graph_layer_name: ChebConv
+  graph_layer_params:
+    K: 4
+    bias: true
+    normalization: sym
+  hidden_fc_channels: 128
+  hidden_graph_channels: 128
+  in_channels: 2
+  num_fc_layers: 2
+  num_graph_layers: 4
+  out_channels: 6
+optimizer_hparams:
+  betas:
+  - 0.9
+  - 0.999
+  lr: 0.0005
+  type: AdamW
+  weight_decay: 0.01
+scheduler_hparams:
+  factor: 0.1
+  patience: 10
+  type: ReduceLROnPlateau
