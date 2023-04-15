@@ -21,11 +21,12 @@ The framework is built on top of the `PyTorch Geometric <https://pytorch-geometr
 Installation
 ------------
 
-To install JeansGNN, simply run:
+To install JeansGNN, simply clone the repo and install with `pip`:
 
 .. code-block:: bash
 
-    python setup.py install
+    git clone https://github.com/trivnguyen/JeansGNN.git
+    pip install .
 
 Usage
 -----
