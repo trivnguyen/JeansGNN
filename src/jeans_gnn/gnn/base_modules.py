@@ -11,14 +11,14 @@ from torch.optim.lr_scheduler import _LRScheduler
 from . import schedulers
 
 class BaseModule(pl.LightningModule):
-    """ Base lightning module with models and preprocessing transforms
+    """
+    Base lightning module for all models. No training or validation steps are
+    implemented here.
 
     Attributes
     ----------
     model: torch.nn.Module
         Model module
-    transform: torch.nn.Module
-        Transformation module
 
     Methods
     -------
@@ -30,8 +30,6 @@ class BaseModule(pl.LightningModule):
         Training step
     validation_step(batch, batch_idx)
         Validation step
-    test_step(batch, batch_idx)
-        Test step
     _get_optimizer()
         Return optimizer
     _get_scheduler(optimizer)
@@ -124,17 +122,20 @@ class BaseModule(pl.LightningModule):
                 "scheduler must be 'ReduceLROnPlateau' or 'AttentionScheduler', "
                 "not {}".format(scheduler))
 
-class MAFModule(BaseModule):
+
+class BaseFlowModule(BaseModule):
     """
-    Masked autoregressive flow (MAF) data module inherited from BaseModule.
-    Training by minimizing the log-likelihood P(y | context) where G(x) is the
-    model architecture.
+    Base lightning module for flow-based models. Training by minimizing the
+    log-likelihood P(y | context) where G(x) is the model architecture.
+    Explicitly assumes:
+    - `self.model` has a `log_prob` method that returns the log-likelihood of the
+    data given the context.
+    - `self.model` has a `sample` method that returns samples from the model.
+
     Attributes
     ----------
     model: torch.nn.Module
         Model module
-    transform: torch.nn.Module
-        Transformation module
 
     Methods
     -------
@@ -142,8 +143,10 @@ class MAFModule(BaseModule):
         Training step
     validation_step(batch, batch_idx)
         Validation step
-    test_step(batch, batch_idx)
-        Test step
+    sample(*args, **kargs)
+        Sample from model
+    log_prob(*args, **kargs)
+        Return log-likelihood of data
     """
     def __init__(
             self, model: torch.nn.Module,
@@ -190,3 +193,6 @@ class MAFModule(BaseModule):
 
     def sample(self, *args, **kargs):
         return self.model.sample(*args, **kargs)
+
+    def log_prob(self, *args, **kargs):
+        return self.model.log_prob(*args, **kargs)
