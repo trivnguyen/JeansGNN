@@ -150,6 +150,7 @@ def read_graph_dataset(path, features_list=None, concat=False, to_array=True):
             p: np.array(v, dtype='object') for p, v in node_features.items()}
     return node_features, graph_features, headers
 
+
 def create_dataloader(
         transform, dataset_name=None, dataset_path=None, flag='train',
         verbose=True, **kwargs):
@@ -191,7 +192,6 @@ def create_dataloader(
     # read the dataset
     node_features, graph_features, headers = read_graph_dataset(
         path, features_list=['pos', 'vel', 'labels'])
-    num_graphs = headers['num_galaxies']
 
     # print out dataset information
     if verbose:
@@ -201,13 +201,35 @@ def create_dataloader(
         for header in headers:
             logger.info(f"{header}: {headers[header]}")
 
+    # return dataloader
+    return create_dataloader_from_array(
+        node_features['pos'], node_features['vel'], transform,
+        labels=graph_features['labels'], **kwargs)
+
+def create_dataloader_from_array(
+        pos, vel, transform, labels=None, **kwargs):
+    """ Create a data loader from a dataset
+    Parameters
+    ----------
+    pos: np.ndarray
+        Array of shape (N, 2) containing the positions of N particles
+    vel: np.ndarray
+        Array of shape (N, 1) containing the velocities of N particles
+    transform: callable
+        Transform function from coordinates to torch_geometric.data.Data
+    labels: np.ndarray
+        Array of shape (N, ) containing the labels of N particles
+    kwargs: dict
+        Keyword arguments for DataLoader
+
+    Returns
+    -------
+    dataloader: torch_geometric.loader.DataLoader
+    """
     # create a graph dataset
     dataset = []
-    for i in range(num_graphs):
-        pos = node_features['pos'][i]
-        vel = node_features['vel'][i]
-        labels = graph_features['labels'][i]
-        graph = transform(pos, vel, labels)
+    for i in range(len(pos)):
+        graph = transform(pos[i], vel[i], labels[i])
         dataset.append(graph)
 
     # create a data loader
