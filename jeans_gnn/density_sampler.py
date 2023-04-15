@@ -184,7 +184,6 @@ class DensitySampler():
 
     def fit(
             self,
-            dataset_name: Optional[str] = None,
             train_dataset_path: Optional[str] = None,
             val_dataset_path: Optional[str] = None,
             train_loader: Optional[DataLoader] = None,
@@ -200,18 +199,15 @@ class DensitySampler():
 
         Parameters
         ----------
-        dataset_name: str
-            Name of the dataset
-        train_dataset_path: str
-            Path to the training dataset. Ignored if dataset_name is provided
-        val_dataset_path: str
-            Path to the validation dataset. Ignored if dataset_name is provided
         train_loader: torch_geometric.loader.DataLoader
-            Training data loader. Ignored if dataset_name or train_dataset_path
+            Training data loader
             is provided
         val_loader: torch_geometric.loader.DataLoader
-            Validation data loader. Ignored if dataset_name or val_dataset_path
-            is provided
+            Validation data loader
+        train_dataset_path: str
+            Path to the training dataset. Ignore if `train_loader` is provided
+        val_dataset_path: str
+            Path to the validation dataset. Ignore if `val_loader` is provided
         batch_size: int
             Batch size
         num_workers: int
@@ -228,24 +224,24 @@ class DensitySampler():
         # Create data loaders
         pin_memory = True if torch.cuda.is_available() else False
         if train_loader is None:
+            if train_dataset_path is None:
+                raise ValueError(
+                    "Either `train_loader` or `train_dataset_path` "
+                    "must be provided")
             train_loader = utils.dataset.create_dataloader(
-                self.transform, dataset_name=dataset_name,
-                dataset_path=train_dataset_path, flag='train',
+                train_dataset_path, self.transform,
                 batch_size=batch_size, shuffle=True,
                 num_workers=num_workers, pin_memory=pin_memory)
-        if train_loader is None:
-            raise ValueError(
-                "Training dataset not found. Please provide either "
-                "dataset_name or train_dataset_path")
+
         if val_loader is None:
-            val_loader = utils.dataset.create_dataloader(
-                self.transform, dataset_name=dataset_name,
-                dataset_path=val_dataset_path, flag='valid',
-                batch_size=batch_size, shuffle=False,
-                num_workers=num_workers, pin_memory=pin_memory)
-        if val_loader is None:
-            logger.info(
-                "Validation dataset not found. Will not perform validation")
+            if val_dataset_path is None:
+                logger.info(
+                    "Validation dataset not found. Will not perform validation")
+            else:
+                val_loader = utils.dataset.create_dataloader(
+                    val_dataset_path, self.transform,
+                    batch_size=batch_size, shuffle=False,
+                    num_workers=num_workers, pin_memory=pin_memory)
 
         # Create a trainer
         # set up callbacks
@@ -278,10 +274,8 @@ class DensitySampler():
     def sample(
             self,
             num_samples: int,
-            dataset_name: Optional[str] = None,
-            dataset_flag: str = 'test',
+            data_loader: Optional[DataLoader] = None,
             dataset_path: Optional[str] = None,
-            loader: Optional[DataLoader] = None,
             batch_size: int = 1,
             num_workers: int = 1,
             device: Optional[torch.device] = None,
@@ -294,14 +288,10 @@ class DensitySampler():
         ----------
         num_samples: int
             Number of samples to generate
-        dataset_name: str
-            Name of the dataset
-        dataset_flag: str
-            Flag of the dataset. Only used if dataset_name is provided
+        data_loader: torch_geometric.loader.DataLoader
+            Data loader
         dataset_path: str
-            Path to the dataset. Ignored if dataset_name is provided
-        loader: torch_geometric.loader.DataLoader
-            Data loader. Ignored if dataset_name or dataset_path is provided
+            Path to the dataset. Ignore if `data_loader` is provided
         batch_size: int
             Batch size
         num_workers: int
@@ -323,19 +313,19 @@ class DensitySampler():
         # Set device
         if device is None:
             device = self.model.device
+        self.model.to(device)
 
         # Create data loader
         pin_memory = True if torch.cuda.is_available() else False
-        if loader is None:
-            loader = utils.dataset.create_dataloader(
-                self.transform, dataset_name=dataset_name,
-                dataset_path=dataset_path, flag=dataset_flag,
+        if data_loader is None:
+            if dataset_path is None:
+                raise ValueError(
+                    "Either `data_loader` or `dataset_path` "
+                    "must be provided")
+            data_loader = utils.dataset.create_dataloader(
+                dataset_path, self.transform,
                 batch_size=batch_size, shuffle=False,
                 num_workers=num_workers, pin_memory=pin_memory)
-        if loader is None:
-            raise ValueError(
-                "Dataset not found. Please provide either "
-                "dataset_name or dataset_path")
 
         # Make sure the model is in eval mode
         self.model.eval()
@@ -343,7 +333,7 @@ class DensitySampler():
             # Iterate through the data loader
             posteriors = []
             labels = []
-            for batch in loader:
+            for batch in data_loader:
                 batch = batch.to(device)
                 posterior = self.model.sample(
                     batch, num_samples=num_samples)
@@ -383,7 +373,7 @@ class DensitySampler():
         run_name: str
             Name of the run. Ignored if run_dir is provided
         run_prefix: str
-            Prefix of the run. Ignored if run_dir or run_name is provided
+            Prefix of the run. Ignored if run_dir is provided
         model_type: str
             Type of the model. Currently only 'GNN' is supported
         model_params: dict

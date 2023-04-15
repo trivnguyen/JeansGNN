@@ -1,2 +1,2 @@
 
-from . import dataset, paths
+from . import dataset

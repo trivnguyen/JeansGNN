@@ -8,8 +8,6 @@ import h5py
 import numpy as np
 from torch_geometric.loader import DataLoader
 
-import jeans_gnn.utils.paths as paths
-
 
 def write_graph_dataset(
         path, node_features, graph_features, lengths, headers=None):
@@ -150,21 +148,15 @@ def read_graph_dataset(path, features_list=None, concat=False, to_array=True):
             p: np.array(v, dtype='object') for p, v in node_features.items()}
     return node_features, graph_features, headers
 
-
-def create_dataloader(
-        transform, dataset_name=None, dataset_path=None, flag='train',
-        verbose=True, **kwargs):
+def create_dataloader_from_path(
+        dataset_path, transform, verbose=True, **kwargs):
     """ Create a data loader from a dataset
     Parameters
     ----------
+    dataset_path: str
+        Path to the dataset
     transform: callable
         Transform function from coordinates to torch_geometric.data.Data
-    dataset_name: str
-        Name of the dataset
-    dataset_path: str
-        Path to the dataset. Ignored if dataset_name is provided
-    flag: str
-        Flag of the dataset. Only used if dataset_name is provided
     verbose: bool
         Whether to print out the dataset information
     kwargs: dict
@@ -175,28 +167,17 @@ def create_dataloader(
     dataloader: torch_geometric.loader.DataLoader
     """
     # find dataset path, return None if not found
-    if dataset_name is not None:
-        path = paths.find_dataset(dataset_name, flag=flag)
-        if path is None:
-            logger.info(f"Dataset {dataset_name} not found. Return None.")
-            return None
-    elif dataset_path is not None:
-        path = dataset_path
-        if not os.path.exists(path):
-            logger.info(f"Dataset {path} not found. Return None.")
-            return None
-    else:
-        logger.info("No dataset provided. Return None.")
-        return None
+    if not os.path.exists(dataset_path):
+        raise FileNotFoundError(f"Dataset not found: {dataset_path}")
 
     # read the dataset
     node_features, graph_features, headers = read_graph_dataset(
-        path, features_list=['pos', 'vel', 'labels'])
+        dataset_path, features_list=['pos', 'vel', 'labels'])
 
     # print out dataset information
     if verbose:
-        logger.info(f"Dataset: {path}")
-        logger.info(f"Number of graphs: {len(node_features)}")
+        logger.info(f"Dataset: {dataset_path}")
+        logger.info(f"Number of graphs: {len(node_features['pos'])}")
         logger.info("Headers:")
         for header in headers:
             logger.info(f"{header}: {headers[header]}")
