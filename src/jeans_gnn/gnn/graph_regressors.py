@@ -6,7 +6,7 @@ import torch_geometric
 from torch_geometric.nn import ChebConv, GATConv, GCNConv
 
 from .flows import build_maf
-from .modules import MAFModule
+from .base_modules import BaseFlowModule
 
 
 class DeepSet(torch.nn.Module):
@@ -149,7 +149,7 @@ class GraphRegressor(torch.nn.Module):
 
         return x
 
-    def log_prob(self, batch,return_context=False):
+    def log_prob(self, batch, return_context=False):
         """ Calculate log-likelihood from batch """
         context = self.forward(
             batch.x, batch.edge_index, batch.batch, edge_weight=batch.edge_weight)
@@ -170,11 +170,11 @@ class GraphRegressor(torch.nn.Module):
             return y, context
         return y
 
-    def _log_prob_from_context(self, x, context):
+    def log_prob_from_context(self, x, context):
         """ Return MAF log-likelihood P(x | context)"""
         return self.flows.log_prob(x, context=context)
 
-    def _sample_from_context(self, num_samples, context):
+    def sample_from_context(self, num_samples, context):
         """ Sample P(x | context) """
         return self.flows.sample(num_samples, context=context)
 
@@ -202,7 +202,7 @@ class GraphRegressor(torch.nn.Module):
         return self.GRAPH_LAYERS[graph_layer_name](
             in_dim, out_dim, **graph_layer_params)
 
-class GraphRegressorModule(MAFModule):
+class GraphRegressorModule(BaseFlowModule):
     """ Graph Regressor module """
     def __init__(
             self, model_hparams: Optional[dict] = None,

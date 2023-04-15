@@ -1,2 +1,2 @@
 
-from . import flows, graph_regressors, modules, transforms
+from . import base_modules, flows, graph_regressors, transforms
