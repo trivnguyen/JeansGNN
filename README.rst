@@ -10,10 +10,12 @@ JeansGNN can also perform the unbinned Jeans analysis as described in Chang et a
 The framework is built on top of the `PyTorch Geometric <https://pytorch-geometric.readthedocs.io/en/latest/>`_ and `PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/latest/>`_ library.
 
 :Authors:
-    Tri Nguyen
-    Siddharth Mishra-Sharma
-    Reuel Williams
-    Lina Necib
+    Tri Nguyen,
+    Siddharth Mishra-Sharma,
+    Reuel Williams,
+    Lina Necib,
+:Maintainer:
+    Tri Nguyen (tnguy@mit.edu)
 :Version: 0.0.0 (2023-04-14)
 
 Installation
