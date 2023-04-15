@@ -1,2 +1,2 @@
 
-from . import physics, profiles
+from . import particles, profiles
