@@ -61,3 +61,6 @@ class BilbyModule(bilby.Likelihood):
         """ Return the mean and standard deviation of the posterior of a given key """
         values = self.result.posterior[key].values
         return np.mean(values), np.std(values)
+
+    def load_result(self, *args, **kargs):
+        self.result = bilby.core.result.read_in_result(*args, **kargs)
