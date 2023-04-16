@@ -1,2 +1,2 @@
 
-from . import inference_models, gnn, jeans, utils
+from . import im, gnn, jeans, utils

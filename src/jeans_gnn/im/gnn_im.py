@@ -364,7 +364,7 @@ class GNNInferenceModel():
             scheduler_params: Optional[dict] = None,
             transform_params: Optional[dict] = None,
         ):
-        """ Load a DensitySampler from a directory
+        """ Load a Inference Model from a directory
 
         Parameters
         ----------
@@ -387,7 +387,7 @@ class GNNInferenceModel():
 
         Returns
         -------
-        sampler: DensitySampler
+        sampler: Inference Model
         """
         if run_name is not None:
             if run_prefix is None:
@@ -415,7 +415,7 @@ class GNNInferenceModel():
             params['transform_params'].update(transform_params)
         params['config_file'] = config_file
 
-        # create a DensitySampler
-        sampler = DensitySampler(resume=True, **params)
+        # create a Inference Model
+        sampler = GNNInferenceModel(resume=True, **params)
 
         return sampler

@@ -14,6 +14,24 @@ from .. import utils
 from ..jeans import binned_jeans_model, binned_lp_model, density_profiles
 from ..jeans import dist_functions
 
+
+def parse_bilby_priors(priors: dict):
+    """ Parse the priors from a dictionary to a Bilby prior dictionary """
+    parse_dict = {
+        'Uniform': bilby.core.prior.Uniform,
+        'LogUniform': bilby.core.prior.LogUniform,
+        'Normal': bilby.core.prior.Normal,
+        'LogNormal': bilby.core.prior.LogNormal,
+        'DeltaFunction': bilby.core.prior.DeltaFunction,
+    }
+    bilby_priors = bilby.core.prior.PriorDict()
+    for key, val in priors.items():
+        prior_type = val.pop('type')
+        if prior_type not in parse_dict:
+            raise ValueError(f'Unknown prior type: {prior_type}')
+        bilby_priors[key] = parse_dict[prior_type](name=key, **val)
+    return bilby_priors
+
 class JeansInferenceModel():
     """ Sample the dark matter density from kinematic data using Jeans equation.
     Fit the light profile first, then use the fitted parameters as the initial
@@ -53,6 +71,10 @@ class JeansInferenceModel():
         """
         if run_prefix is None:
             run_prefix = ''
+        if priors is None:
+            priors = {}
+        if model_params is None:
+            model_params = {}
 
         if config_file is not None:
             with open(config_file, 'r') as f:
@@ -63,20 +85,19 @@ class JeansInferenceModel():
             self.priors.update(priors)
             self.model_params.update(model_params)
         else:
-            self.model_params = model_params
             self.priors = priors
+            self.model_params = model_params
 
         self.run_name = run_name
         self.run_prefix = run_prefix
         self.output_dir = None
-        self.priors = priors
         self.dm_density_profile = None
         self.lp_density_profile = None
         self.dist_function = None
 
-        self._setup_dir(resume=resume)
         self._setup_model()
         self._setup_bilby_priors()
+        self._setup_dir(resume=resume)
 
     def _setup_model(self):
         """ Set up the model parameters and priors """
@@ -84,13 +105,13 @@ class JeansInferenceModel():
         self.lp_density_profile = density_profiles.Plummer
         self.dist_function = dist_functions.OsipkovMerritt
         self.parameters = {
-            "dm": self.dm_density_profile.PARAMETERS,
-            "lp": self.lp_density_profile.PARAMETERS,
-            "df": self.dist_function.PARAMETERS,
-            "other": {}  # for other free parameters
+            "dm": list(self.dm_density_profile.PARAMETERS),
+            "lp": list(self.lp_density_profile.PARAMETERS),
+            "df": list(self.dist_function.PARAMETERS),
+            "other": [],  # for other free parameters
         }
-        if self.model_params['fit_v_mean']:
-            self.parameters['other']['v_mean'] = {}
+        if self.model_params['jeans_fit']['fit_v_mean']:
+            self.parameters['other'] += ['v_mean']
 
     def _setup_dir(self, resume: bool = False):
         """ Set up the output directory and write all params into yaml """
@@ -106,9 +127,8 @@ class JeansInferenceModel():
         params = {
             'run_name': self.run_name,
             'run_prefix': self.run_prefix,
-            'lp_density_profile': self.lp_density_profile.__name__,
-            'dm_density_profile': self.dm_density_profile.__name__,
-            'dist_function': self.dist_function.__name__,
+            'model': self.model_params,
+            'priors': self.priors,
         }
         with open(
             os.path.join(self.output_dir, 'params.yaml'),
@@ -117,26 +137,11 @@ class JeansInferenceModel():
 
     def _setup_bilby_priors(self):
         """ Parse the priors from a dictionary to a Bilby prior dictionary """
-        bilby_priors = bilby.core.prior.PriorDict()
-        for key, val in self.priors.items():
-            if val['type'] == 'Uniform':
-                bilby_priors[key] = bilby.core.prior.Uniform(
-                    val['min'], val['max'], name=key)
-            elif val['type'] == 'LogUniform':
-                bilby_priors[key] = bilby.core.prior.LogUniform(
-                    val['min'], val['max'], name=key)
-            elif val['type'] == 'Normal':
-                bilby_priors[key] = bilby.core.prior.Normal(
-                    val['mean'], val['std'], name=key)
-            elif val['type'] == 'LogNormal':
-                bilby_priors[key] = bilby.core.prior.LogNormal(
-                    val['mean'], val['std'], name=key)
-            elif val['type'] == 'DeltaFunction':
-                bilby_priors[key] = bilby.core.prior.DeltaFunction(
-                    val['value'], name=key)
-            else:
-                raise ValueError(f"Unknown prior type: {val['type']}")
-        self.bilby_priors = bilby_priors
+        # check if priors ia already a bilby prior dict
+        if isinstance(self.priors, bilby.core.prior.PriorDict):
+            self.bilby_priors = self.priors
+        else:
+            self.bilby_priors = parse_bilby_priors(self.priors)
 
     def _get_bilby_priors(self, key):
         """ Get the priors for a given key """
@@ -151,8 +156,25 @@ class JeansInferenceModel():
         bilby_priors = self.bilby_priors.copy()
 
         # replace the light profile parameters with the fitted value
-        for k, v in lp_model.items():
-            bilby_priors[k] = bilby.core.prior.DeltaFunction(v, name=k)
+        lp_prior_type = self.model_params.get('lp_prior_type', 'best_median')
+        for key in self.parameters['lp']:
+            if  lp_prior_type == 'ci':
+                val_lo, val_hi = lp_model.get_credible_intervals(key, p=0.95)
+                bilby_priors[key] = bilby.core.prior.Uniform(val_lo, val_hi, key)
+            elif lp_prior_type == 'normal':
+                mean, std = lp_model.get_mean_and_std(key)
+                bilby_priors[key] = bilby.core.prior.Gaussian(mean, std, key)
+            elif lp_prior_type == 'best_median':
+                median = lp_model.get_median(key)
+                bilby_priors[key] = bilby.core.prior.DeltaFunction(median, key)
+            elif lp_prior_type == 'best_mean':
+                mean = lp_model.get_mean(key)
+                bilby_priors[key] = bilby.core.prior.DeltaFunction(mean, key)
+            elif lp_prior_type == 'uni':
+                raise NotImplementedError
+            else:
+                raise ValueError(
+                    f"Unknown lp_prior_type in `model_params`: {lp_prior_type}")
 
     def fit(self):
         raise NotImplementedError
@@ -189,19 +211,22 @@ class JeansInferenceModel():
         # First, we define and sample the light profile model
         lp_priors  = self._get_bilby_priors('lp')
         lp_model = binned_lp_model.BinnedLPModel(
-            self.lp_density_profile, data, priors=lp_priors)
+            self.lp_density_profile, data, priors=lp_priors,
+            **self.model_params.get('lp_fit', {})
+        )
         lp_model.run_sampler(
             sampler=sampler, label="lp_fit", outdir=data_outdir,
             **sampler_args
         )
 
         # Then, we define and sample the dark matter density profile model
-        dm_priors = self._get_dm_priors_from_lp(lp_model)
+        dm_priors = self._get_bilby_jeans_priors(lp_model)
         dm_model = binned_jeans_model.BinnedJeansModel(
             dm_profile=self.dm_density_profile,
             lp_profile=self.lp_density_profile,
             dist_function=self.dist_function,
-            data=data, priors=dm_priors
+            data=data, priors=dm_priors,
+            **self.model_params.get('dm_fit', {})
         )
         dm_model.run_sampler(
             sampler=sampler, label="dm_fit", outdir=data_outdir,
