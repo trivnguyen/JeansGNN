@@ -45,12 +45,16 @@ The following dependencies are required to run this project:
 - Tensorboard 2.7.0 or later
 - Bilby 2.1.0 or later
 
-To install the dependencies separately, you can use pip:
+To install the dependencies separately, you can use `pip`:
+
 .. code-block:: bash
+
     pip install -r requirements.txt
 
 It is recommended to use a virtual environment to manage the dependencies and avoid version conflicts. You can create a virtual environment and activate it using the following commands:
+
 .. code-block:: bash
+
     python -m venv env
     source env/bin/activate (Linux/MacOS)
     env\Scripts\activate.bat (Windows)
