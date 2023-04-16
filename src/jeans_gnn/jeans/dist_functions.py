@@ -19,8 +19,8 @@ class DistributionFunction:
         """ Compute the velocity anisotropy """
         raise NotImplementedError
 
-class OsipkovMerrit(DistributionFunction):
-    """ The Osipkov-Merrit distribution function """
+class OsipkovMerritt(DistributionFunction):
+    """ The Osipkov-Merritt distribution function """
 
     PARAMETERS = ("beta_0", "r_a")
 

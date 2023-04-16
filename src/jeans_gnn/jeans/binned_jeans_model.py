@@ -154,6 +154,7 @@ class BinnedJeansModel(BilbyModule):
         dist_function = self.dist_function(**dist_params)
         v_mean = self.parameters['v_mean']
 
+        # First, we calculate the projected velocity dispersion profile
         # calculate the velocity ani Beta(r) and the anisotropy integral g(r)
         beta = dist_function.velocity_anisotropy(self.int_radius)
         gint = utils.calc_gint(self.int_radius, beta)
@@ -164,8 +165,7 @@ class BinnedJeansModel(BilbyModule):
         # calculate the DM density profile at each integration radius
         nu = lp_profile.density(self.int_radius, projected=False)
 
-        # calculate the projected 2d velocity dispersion by first integrating
-        # the 3d Jeans velocity dispersion equation
+        # integrate the 3d Jeans velocity dispersion equation
         sigma2_nu = utils.calc_sigma2_nu(
             self.int_radius, dm_profile.cumulative_mass(self.int_radius), nu, gint)
 
