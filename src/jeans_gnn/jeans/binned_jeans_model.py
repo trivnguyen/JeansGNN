@@ -40,7 +40,7 @@ class BinnedJeansModel(BilbyModule):
         The radius integration resolution
     """
 
-    REQUIRED_DATA_KEYS = ("pos", "vel", "vel_err")
+    REQUIRED_DATA_KEYS = ("pos", "vel", "vel_error")
 
     def __init__(
         self,
@@ -116,7 +116,7 @@ class BinnedJeansModel(BilbyModule):
         """ Setup before running the likelihood function """
         pos = self.data['pos']
         vel = self.data['vel']
-        vel_err = self.data['vel_err']
+        vel_error = self.data['vel_error']
         radius = np.linalg.norm(pos, axis=1)
 
         # define integration radius array
@@ -129,7 +129,7 @@ class BinnedJeansModel(BilbyModule):
             self.parameters['v_mean'] = np.mean(vel)
 
         # add prepared data as attributes
-        self.vel_var = vel_err**2
+        self.vel_var = vel_error**2
         self.int_radius = r_arr
         self.data['radius'] = radius
 
