@@ -1,0 +1,37 @@
+method: Jeans
+
+model:
+  lp_prior_type: best_median
+  jeans_fit:
+    fit_v_mean: false
+    r_min_factor: 0.5,
+    r_max_factor: 2
+    dr: 0.1
+
+priors:
+  r_dm:
+    type: LogUniform
+    minimum: 0.1
+    maximum: 10
+  gamma:
+    type: Uniform
+    minimum: -1
+    maximum: 2
+  rho_0:
+    type: LogUniform
+    minimum: 1.0e+5
+    maximum: 1.0e+8
+  L:
+    type: LogUniform
+    minimum: 1.0e-2
+    maximum: 1.0e+5
+  r_star:
+    type: LogUniform
+    minimum: 1.0e-3
+    maximum: 1.0e+3
+  r_a:
+    type: DeltaFunction
+    peak: 0.12067223921189237
+  beta_0:
+    type: DeltaFunction
+    peak: 0.12881816386775002
