@@ -13,10 +13,10 @@ import yaml
 from pytorch_lightning.loggers import CSVLogger
 from torch_geometric.data import DataLoader
 
-from . import utils
-from .gnn import graph_regressors, transforms
+from .. import utils
+from ..gnn import graph_regressors, transforms
 
-class DensitySampler():
+class GNNInferenceModel():
     """ Sample the dark matter density from kinematic data
 
     Attributes
