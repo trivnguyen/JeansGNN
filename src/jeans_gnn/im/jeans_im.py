@@ -175,6 +175,7 @@ class JeansInferenceModel():
             else:
                 raise ValueError(
                     f"Unknown lp_prior_type in `model_params`: {lp_prior_type}")
+        return bilby_priors
 
     def fit(self):
         raise NotImplementedError
@@ -235,5 +236,5 @@ class JeansInferenceModel():
 
         # return the light profile model if requested
         if return_lp_model:
-            return lp_model, dm_model
+            return dm_model, lp_model
         return dm_model
