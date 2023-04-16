@@ -99,7 +99,7 @@ class BinnedJeansModel(BilbyModule):
     """
 
     def __init__(
-        self, dm_profile: DensityProfile, light_profile: DensityProfile,
+        self, dm_profile: DensityProfile, lp_profile: DensityProfile,
         dist_function: DistributionFunction, radius2d: list, vel: list,
         priors: dict, vel_err: Optional[list] = None,
         r_min_factor: float = 0.5, r_max_factor: float = 2,
@@ -110,7 +110,7 @@ class BinnedJeansModel(BilbyModule):
         ----------
         dm_profile: DensityProfile
             The DM density profile class
-        light_profile: DensityProfile
+        lp_profile: DensityProfile
             The light profile density class
         dist_function: DistributionFunction
             The distribution function class
@@ -130,10 +130,8 @@ class BinnedJeansModel(BilbyModule):
             The radius integration resolution
         """
         parameters_list = (
-            dm_profile.PARAMETERS
-            + light_profile.PARAMETERS
-            + dist_function.PARAMETERS
-            + ['v_mean']
+            list(dm_profile.PARAMETERS) + list(lp_profile.PARAMETERS)
+            + list(dist_function.PARAMETERS) + ['v_mean']
         )
         super().__init__(parameters={
             k: None for k in parameters_list
@@ -144,7 +142,7 @@ class BinnedJeansModel(BilbyModule):
 
         # define attributes
         self.dm_profile = dm_profile
-        self.light_profile = light_profile
+        self.lp_profile = lp_profile
         self.dist_function = dist_function
         self.radius2d = radius2d
         self.vel = vel
@@ -154,11 +152,14 @@ class BinnedJeansModel(BilbyModule):
         self.r_max_factor = r_max_factor
         self.dr = dr
 
+        # set up likelihood function
+        self._setup_likelihood()
+
     def _setup_likelihood(self):
         """ Setup before running the likelihood function """
         vel_var = self.vel_err**2
-        r_min = np.min(self.radius) * self.r_min_factor
-        r_max = np.max(self.radius) * self.r_max_factor
+        r_min = np.min(self.radius2d) * self.r_min_factor
+        r_max = np.max(self.radius2d) * self.r_max_factor
         r_arr = np.arange(r_min, r_max + self.dr, self.dr)
 
         self.radius3d = r_arr
@@ -180,17 +181,17 @@ class BinnedJeansModel(BilbyModule):
         dm_parameters = {
             k: self.parameters[k] for k in self.dm_profile.PARAMETERS}
         light_parameters = {
-            k: self.parameters[k] for k in self.light_profile.PARAMETERS}
+            k: self.parameters[k] for k in self.lp_profile.PARAMETERS}
         dist_function_parameters = {
             k: self.parameters[k] for k in self.dist_function.PARAMETERS}
         dm_profile = self.dm_profile(**dm_parameters)
-        light_profile = self.light_profile(**light_parameters)
+        lp_profile = self.lp_profile(**light_parameters)
         dist_function = self.dist_function(**dist_function_parameters)
         v_mean = self.parameters['v_mean']
 
         # calculate the 3D and 2D light profile
-        Sigma = light_profile.density(self.radius2d, projected=True)
-        nu = light_profile.density(self.radius2d, projected=False)
+        Sigma = lp_profile.density(self.radius2d, projected=True)
+        nu = lp_profile.density(self.radius3d, projected=False)
 
         # calculate Beta(r) and g(r), the anisotropy integral
         beta = dist_function.velocity_anisotropy(self.radius3d)
