@@ -5,6 +5,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+import bilby
 import numpy as np
 
 from . import utils
@@ -82,8 +83,8 @@ class BinnedJeansModel(BilbyModule):
         parameters += dm_profile.PARAMETERS
         parameters += lp_profile.PARAMETERS
         parameters += dist_function.PARAMETERS
-        if fit_v_mean:
-            parameters.append("v_mean")
+        parameters += ["v_mean"]
+
 
         # if there is any duplication in the parameters list, raise an error
         if len(parameters) != len(set(parameters)):
@@ -125,8 +126,10 @@ class BinnedJeansModel(BilbyModule):
         r_arr = np.arange(r_min, r_max + self.dr, self.dr)
 
         # calculate the mean velocity if not fitting for it
-        if not self.fit_v_mean:
-            self.parameters['v_mean'] = np.mean(vel)
+        # set priors to Delta function
+        if self.fit_v_mean:
+            self.priors['v_mean'] = bilby.core.prior.DeltaFunction(
+                np.mean(vel), name='v_mean')
 
         # add prepared data as attributes
         self.vel_var = vel_error**2

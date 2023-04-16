@@ -108,10 +108,8 @@ class JeansInferenceModel():
             "dm": list(self.dm_density_profile.PARAMETERS),
             "lp": list(self.lp_density_profile.PARAMETERS),
             "df": list(self.dist_function.PARAMETERS),
-            "other": [],  # for other free parameters
+            "other": ['v_mean', ],  # for other free parameters
         }
-        if self.model_params['jeans_fit']['fit_v_mean']:
-            self.parameters['other'] += ['v_mean']
 
     def _setup_dir(self, resume: bool = False):
         """ Set up the output directory and write all params into yaml """
