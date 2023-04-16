@@ -49,7 +49,8 @@ class BinnedJeansModel(BilbyModule):
         dist_function: DistributionFunction,
         data: dict,
         priors: dict,
-        r_min_factor: float = 0.5, r_max_factor: float = 2,
+        r_min_factor: float = 0.5,
+        r_max_factor: float = 2,
         dr: float = 0.001,
         fit_v_mean: bool = True
     ):
