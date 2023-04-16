@@ -65,7 +65,7 @@ Usage
 -----
 An example of the graph-based simulation-based inference method in Nguyen et al. (2023) [1]_ can be found at ``tutorials/example_training.ipynb``.
 
-An example of the binned Jeans analysis in Chang & Necib (2021) [2]_ can be found at ``tutorials/example_binned_jeans.ipynb`
+An example of the binned Jeans analysis in Chang & Necib (2021) [2]_ can be found at ``tutorials/example_binned_jeans.ipynb``.
 
 The rest of the tutorials are under construction. More to come!
 
