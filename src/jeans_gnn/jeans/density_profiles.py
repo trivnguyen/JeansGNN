@@ -66,6 +66,15 @@ class GeneralizedNFW(DensityProfile):
         rho_0 = self.parameters["rho_0"]
         r_dm = self.parameters["r_dm"]
         gamma = self.parameters["gamma"]
+
+        # if rho_0, r_dm, and gamma are arrays, broadcast r to the same shape
+        if isinstance(rho_0, np.ndarray) or isinstance(r_dm, np.ndarray) or \
+                isinstance(gamma, np.ndarray):
+            r = r[..., np.newaxis]
+            r_dm = r_dm[np.newaxis, ...]
+            rho_0 = rho_0[np.newaxis, ...]
+            gamma = gamma[np.newaxis, ...]
+
         x = r / r_dm
         return np.log10(rho_0) - gamma * np.log10(x) - (3 - gamma) * np.log10(1 + x)
 
@@ -116,12 +125,18 @@ class Plummer(DensityProfile):
             L: luminosity
             r_star: scale radius
         """
+        # get parameters
         L = self.parameters["L"]
         r_star = self.parameters["r_star"]
-        logL = np.log10(L)
-        logr_star = np.log10(r_star)
+
+        # if L and r_star are arrays, broadcast r to the same shape
+        if isinstance(L, np.ndarray) and isinstance(r_star, np.ndarray):
+            L = L[np.newaxis, ...]
+            r_star = r_star[np.newaxis, ...]
+            r = r[..., np.newaxis]
+
         x = r / r_star
-        return logL - 2 * logr_star - 2 * np.log10(1 + x**2) - np.log10(np.pi)
+        return np.log10(L) - 2 * np.log10(r_star) - 2 * np.log10(1 + x**2) - np.log10(np.pi)
 
     def log_density3d(self, r: np.ndarray) -> np.ndarray:
         """ Compute the log density of the 3D Plummer profile.
@@ -135,8 +150,14 @@ class Plummer(DensityProfile):
         """
         L = self.parameters["L"]
         r_star = self.parameters["r_star"]
-        logL = np.log10(L)
-        logr_star = np.log10(r_star)
+
+        # if L and r_star are arrays, broadcast r to the same shape
+        if isinstance(L, np.ndarray) and isinstance(r_star, np.ndarray):
+            L = L[np.newaxis, ...]
+            r_star = r_star[np.newaxis, ...]
+            r = r[..., np.newaxis]
+
         x = r / r_star
-        return logL - 3 * logr_star - (5/2) * np.log10(1 + x**2) - np.log10(4 * np.pi / 3)
+        return (np.log10(L) - 3 * np.log10(r_star) - (5/2) * np.log10(1 + x**2)
+                - np.log10(4 * np.pi / 3))
 
