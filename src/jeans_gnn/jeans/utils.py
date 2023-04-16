@@ -132,9 +132,9 @@ def calc_Sigma(R, alpha=0.32, return_bounds=False):
 
 def calc_sigma2_nu(r, cmass, nu, g):
     """ Calculate the 3D Jeans integration:
-    ```
+    .. math::
     sigma2(r0) nu(r0) g(r_0) =  int_r0^\infty G M(r) nu(r) g(r) / r^2 dr
-    ```
+
     where:
     - G is the gravitational constant
     - M(r) is the enclosed radius at radius r in Msun
@@ -165,11 +165,11 @@ def calc_sigma2_nu(r, cmass, nu, g):
             inte[::-1], dx=dr, initial=0)[::-1] / g
 
 
-def calc_g(r, beta):
-    """ Calculate the g(r) integral defined as:
-    ```
+def calc_gint(r, beta):
+    """ Calculate the Jeans velocity anisotropy integral g(r) defined as:
+    .. math::
         g(r) = exp( 2 \int beta(r) / r dr )
-    ```
+
     where:
         beta(r) is the velocity anisotropy
         r is the 3d radius
@@ -186,9 +186,9 @@ def calc_g(r, beta):
 
 def calc_sigma2p_Sigma(R, r, sigma2_nu, beta):
     """ Calculate the projected Jeans integration:
-    ```
+    .. math::
     sigma2_p(R) Sigma(R) = 2 * int_R^\intfy (1 - beta * R^2 /r^2) (nu(r) sigma2(r) r) / sqrt(r^2 - R^2) dr
-    ```
+
     where:
     - R is the projected radius
     - Sigma(R) is the 3D light profile

@@ -136,9 +136,9 @@ class BinnedJeansModel(BilbyModule):
     def log_likelihood(self):
         """ The log likelihood given a set of DM parameters.
         For each star the log likelihood is defined as:
-        ```
+        .. math::
         logL = -0.5 * (v - v_mean)^2 / (sigma2_p + v_err^2) - 0.5 * log(2 pi  * (sigma2_p + verr^2))
-        ``
+
         where:
         - v is the velocity of the star
         - v_mean is the mean velocity of all stars
