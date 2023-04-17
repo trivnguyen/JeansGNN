@@ -13,6 +13,7 @@ The framework is built on top of the `PyTorch Geometric <https://pytorch-geometr
     Tri Nguyen,
     Siddharth Mishra-Sharma,
     Reuel Williams,
+    Laura Chang,
     Lina Necib,
 :Maintainer:
     Tri Nguyen (tnguy@mit.edu)
