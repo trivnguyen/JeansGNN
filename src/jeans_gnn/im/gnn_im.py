@@ -40,7 +40,30 @@ class GNNInferenceModel():
         Set up the model
     _setup_dir()
         Set up the output directory
-
+    fit(
+        train_dataset_path: Optional[str] = None,
+        val_dataset_path: Optional[str] = None,
+        train_loader: Optional[DataLoader] = None,
+        val_loader: Optional[DataLoader] = None,
+        batch_size: int = 1,
+        num_workers: int = 1,
+        max_epochs: int = 100,
+        min_delta: float = 0.0,
+        patience: int = 20,
+        save_top_k: int = 2,
+    )
+        Fit the model
+    sample(
+        num_samples: int,
+        data_loader: Optional[DataLoader] = None,
+        dataset_path: Optional[str] = None,
+        batch_size: int = 1,
+        num_workers: int = 1,
+        device: Optional[torch.device] = None,
+        return_labels: bool = False,
+        to_numpy: bool = True,
+    )
+        Sample parameters from the data
     """
 
     def __init__(

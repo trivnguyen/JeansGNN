@@ -1,12 +1,12 @@
 
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Callable, Optional, Union
 
 import torch
 import torch_geometric
 from torch_geometric.nn import ChebConv, GATConv, GCNConv
 
-from .flows import build_maf
 from .base_modules import BaseFlowModule
+from .flows import build_maf
 
 
 class DeepSet(torch.nn.Module):
@@ -24,6 +24,30 @@ class GraphRegressor(torch.nn.Module):
 
     Attributes
     ----------
+    graph_layers: torch.nn.ModuleList
+        List of graph layers
+    fc_layers: torch.nn.ModuleList
+        List of fully connected layers
+    activation: torch.nn.Module or Callable or str
+        Activation function
+    activation_params: dict
+        Parameters of the activation function.
+    flows: torch.nn.ModuleList
+        List of normalizing flow layers
+
+    Methods
+    -------
+    forward(x, edge_index, batch, edge_weight=None)
+        Forward pass of the model
+    log_prob(batch, return_context=False)
+        Calculate log-likelihood from batch
+    sample(batch, num_samples, return_context=False)
+        Sample from batch
+    log_prob_from_context(x, context)
+        Calculate log-likelihood P(x | context)
+    sample_from_context(num_samples, context)
+        Sample from context
+
     """
     # Static attributes
     # all implemented graph layers
@@ -48,7 +72,7 @@ class GraphRegressor(torch.nn.Module):
             num_fc_layers: int = 1,
             graph_layer_name: str = "ChebConv",
             graph_layer_params: Optional[dict] = None,
-            activation: str = "relu",
+            activation: Union[str, torch.nn.Module, Callable] = "relu",
             activation_params: Optional[dict] = None,
             flow_params: dict = None
             ):
@@ -71,10 +95,11 @@ class GraphRegressor(torch.nn.Module):
             Name of the graph layer
         graph_layer_params: dict
             Parameters of the graph layer
-        activation: str
-            Name of the activation function
+        activation: str or torch.nn.Module or Callable
+            Activation function
         activation_params: dict
-            Parameters of the activation function
+            Parameters of the activation function. Ignored if activation is
+            torch.nn.Module
         flow_params: dict
             Parameters of the normalizing flow
         """
@@ -88,7 +113,7 @@ class GraphRegressor(torch.nn.Module):
         self.graph_layer_name = graph_layer_name
 
         # Create the graph layers
-        self.graph_layers = torch.nn.ModuleList()
+        self.graph_layers = torch.nn.MdoduleList()
         for i in range(num_graph_layers):
             n_in = in_channels if i == 0 else hidden_graph_channels
             n_out = hidden_graph_channels
@@ -104,8 +129,17 @@ class GraphRegressor(torch.nn.Module):
             self.fc_layers.append(torch.nn.Linear(n_in, n_out))
 
         # Create activation function
-        self.activation = getattr(torch.nn.functional, activation)
-        self.activation_params = activation_params
+        if isinstance(activation, str):
+            self.activation = getattr(torch.nn.functional, activation)
+            self.activation_params = activation_params
+        elif isinstance(activation, torch.nn.Module):
+            self.activation = activation
+            self.activation_params = {}
+        elif isinstance(activation, Callable):
+            self.activation = activation
+            self.activation_params = activation_params
+        else:
+            raise ValueError("Invalid activation function")
 
         # Create MAF normalizing flow layers
         self.flows = build_maf(

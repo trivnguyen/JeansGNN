@@ -41,6 +41,39 @@ class JeansInferenceModel():
     is fitted using the generalized NFW model. The distribution function is
     assumed to be the Osipkov-Merritt distribution function.
 
+    Attributes
+    ----------
+    run_name: str
+        Name of the run
+    run_prefix: str
+        Prefix of the run
+    output_dir: str
+        Output directory
+    priors: dict
+        Dictionary of priors
+    bilby_priors: bilby.core.prior.PriorDict
+        Dictionary of priors in Bilby format
+    model_params: dict
+        Dictionary of model parameters
+    dm_density_profile: jeans_gnn.jeans.density_profiles.DensityProfile
+        Dark matter density profile
+    lp_density_profile: jeans_gnn.jeans.density_profiles.DensityProfile
+        Light profile
+    dist_function: jeans_gnn.jeans.dist_functions.DistributionFunction
+        Distribution function
+
+    Methods
+    -------
+    fit():
+        Not applicable for Jeans method
+    sample(
+        data: dict,
+        data_name: str,
+        sampler: str,
+        sampler_args: dict,
+        return_lp_model: bool = False,
+    )
+        Perform Jeans sampling on the joint DM and light profile
     """
 
     def __init__(

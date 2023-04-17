@@ -11,11 +11,6 @@ from torch_geometric.data import Data
 class ExponentialEdgeWeightDistance(T.BaseTransform):
     """ Compute edge weight as exponential of distance between nodes
 
-    Parameters
-    ----------
-    norm: bool
-        Normalize the edge weight by the mean distance
-
     Attributes
     ----------
     norm: bool
@@ -28,6 +23,13 @@ class ExponentialEdgeWeightDistance(T.BaseTransform):
     """
 
     def __init__(self, norm: bool = False):
+        """
+        Parameters
+        ----------
+        norm: bool
+            Normalize the edge weight by the mean distance
+        """
+        super().__init__()
         self.norm = False
 
     def __call__(self, data: Data):
