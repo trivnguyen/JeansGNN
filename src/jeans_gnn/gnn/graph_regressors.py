@@ -113,7 +113,7 @@ class GraphRegressor(torch.nn.Module):
         self.graph_layer_name = graph_layer_name
 
         # Create the graph layers
-        self.graph_layers = torch.nn.MdoduleList()
+        self.graph_layers = torch.nn.ModuleList()
         for i in range(num_graph_layers):
             n_in = in_channels if i == 0 else hidden_graph_channels
             n_out = hidden_graph_channels
