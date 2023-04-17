@@ -185,10 +185,10 @@ def create_dataloader_from_path(
     # return dataloader
     return create_dataloader_from_array(
         node_features['pos'], node_features['vel'], transform,
-        labels=graph_features['labels'], **kwargs)
+        labels=graph_features['labels'], verbose=verbose, **kwargs)
 
 def create_dataloader_from_array(
-        pos, vel, transform, labels=None, **kwargs):
+        pos, vel, transform, labels=None, verbose=True, **kwargs):
     """ Create a data loader from a dataset
     Parameters
     ----------
@@ -200,6 +200,7 @@ def create_dataloader_from_array(
         Transform function from coordinates to torch_geometric.data.Data
     labels: np.ndarray
         Array of shape (N, ) containing the labels of N particles
+    verbose: bool
     kwargs: dict
         Keyword arguments for DataLoader
 
@@ -209,7 +210,13 @@ def create_dataloader_from_array(
     """
     # create a graph dataset
     dataset = []
+    if verbose:
+        logger.info(f"Creating graph dataset")
     for i in range(len(pos)):
+        # print every 10%
+        if verbose:
+            if i % (len(pos) // 10) == 0:
+                logger.info(f"Creating graph {i} / {len(pos)}")
         graph = transform(pos[i], vel[i], labels[i])
         dataset.append(graph)
 
