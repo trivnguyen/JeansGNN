@@ -251,7 +251,7 @@ class GNNInferenceModel():
                 raise ValueError(
                     "Either `train_loader` or `train_dataset_path` "
                     "must be provided")
-            train_loader = utils.dataset.create_dataloader(
+            train_loader = utils.dataset.create_dataloader_from_path(
                 train_dataset_path, self.transform,
                 batch_size=batch_size, shuffle=True,
                 num_workers=num_workers, pin_memory=pin_memory)
@@ -261,7 +261,7 @@ class GNNInferenceModel():
                 logger.info(
                     "Validation dataset not found. Will not perform validation")
             else:
-                val_loader = utils.dataset.create_dataloader(
+                val_loader = utils.dataset.create_dataloader_from_path(
                     val_dataset_path, self.transform,
                     batch_size=batch_size, shuffle=False,
                     num_workers=num_workers, pin_memory=pin_memory)
@@ -345,7 +345,7 @@ class GNNInferenceModel():
                 raise ValueError(
                     "Either `data_loader` or `dataset_path` "
                     "must be provided")
-            data_loader = utils.dataset.create_dataloader(
+            data_loader = utils.dataset.create_dataloader_from_path(
                 dataset_path, self.transform,
                 batch_size=batch_size, shuffle=False,
                 num_workers=num_workers, pin_memory=pin_memory)
