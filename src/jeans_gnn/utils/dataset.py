@@ -217,7 +217,10 @@ def create_dataloader_from_array(
         if verbose:
             if i % (len(pos) // 10) == 0:
                 logger.info(f"Creating graph {i} / {len(pos)}")
-        graph = transform(pos[i], vel[i], labels[i])
+        if labels is None:
+            graph = transform(pos[i], vel[i])
+        else:
+            graph = transform(pos[i], vel[i], labels[i])
         dataset.append(graph)
 
     # create a data loader

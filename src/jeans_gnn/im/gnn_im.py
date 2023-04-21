@@ -368,12 +368,12 @@ class GNNInferenceModel():
         if return_labels:
             labels = torch.cat(labels, dim=0)
             if to_numpy:
-                labels = labels.detach().numpy()
-                posteriors = posteriors.detach().numpy()
+                labels = labels.cpu().detach().numpy()
+                posteriors = posteriors.cpu().detach().numpy()
             return posteriors, labels
         else:
             if to_numpy:
-                posteriors = posteriors.detach().numpy()
+                posteriors = posteriors..cpu().detach().numpy()
             return posteriors
 
     @staticmethod
@@ -397,26 +397,18 @@ class GNNInferenceModel():
             Name of the run. Ignored if run_dir is provided
         run_prefix: str
             Prefix of the run. Ignored if run_dir is provided
-        model_type: str
-            Type of the model. Currently only 'GNN' is supported
-        model_params: dict
-            Parameters for the model
-        optimizer_params: dict
-            Parameters for the optimizer
-        scheduler_params: dict
-            Parameters for the scheduler
-        transform_params: dict
-            Parameters for the transformation
-
         Returns
         -------
         sampler: Inference Model
         """
-        if run_name is not None:
+        if run_dir is None:
             if run_prefix is None:
                 run_prefix = ''
             # overwrite run_dir if provided
             run_dir = os.path.join(run_prefix, run_name)
+        else:
+            run_name = os.path.basename(run_dir)
+            run_prefix = os.path.dirname(run_dir)
 
         # check if the directory exists
         logger.info(f"Reloading prior run from {run_dir}")
@@ -426,17 +418,8 @@ class GNNInferenceModel():
         # load params from yaml
         with open(os.path.join(run_dir, 'params.yaml'), 'r') as f:
             params = yaml.load(f, Loader=yaml.FullLoader)
-
-        # overwrite params if provided
-        if model_params is not None:
-            params['model_params'].update(model_params)
-        if optimizer_params is not None:
-            params['optimizer_params'].update(optimizer_params)
-        if scheduler_params is not None:
-            params['scheduler_params'].update(scheduler_params)
-        if transform_params is not None:
-            params['transform_params'].update(transform_params)
-        params['config_file'] = config_file
+        params['run_prefix'] = run_prefix
+        params['run_name'] = run_name
 
         # create a Inference Model
         sampler = GNNInferenceModel(resume=True, **params)
