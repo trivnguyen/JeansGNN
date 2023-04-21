@@ -373,7 +373,7 @@ class GNNInferenceModel():
             return posteriors, labels
         else:
             if to_numpy:
-                posteriors = posteriors..cpu().detach().numpy()
+                posteriors = posteriors.cpu().detach().numpy()
             return posteriors
 
     @staticmethod
