@@ -205,13 +205,13 @@ def calc_sigma2p_Sigma(R, r, sigma2_nu, beta):
     sigma2p_Sigma: array of M float
         The projected velocity dispersion
     """
-    dr = r[1] - r[0]
-    R = R[:, None]
-    r = r[None, :]
-    sigma2_nu = sigma2_nu[None, :]
-    rminR2 = r**2 - R**2
-    beta = beta[None, :]
-    inte = (1 - beta * R**2 / r**2) * sigma2_nu * r
-    inte = jnp.where(rminR2 > 0,  inte / jnp.sqrt(rminR2), 0)
-    sigma2p_Sigma = 2 * jnp.trapz(inte, x=r, axis=1)
-    return sigma2p_Sigma
+    # dr = r[1] - r[0]
+    # R = R[:, None]
+    # r = r[None, :]
+    # sigma2_nu = sigma2_nu[None, :]
+    # rminR2 = r**2 - R**2
+    # beta = beta[None, :]
+    # inte = (1 - beta * R**2 / r**2) * sigma2_nu * r
+    # inte = jnp.where(rminR2 > 0,  inte / jnp.sqrt(rminR2), 0)
+    # sigma2p_Sigma = 2 * jnp.trapz(inte, x=r, axis=1)
+    return sigma2_nu  #sigma2p_Sigma
