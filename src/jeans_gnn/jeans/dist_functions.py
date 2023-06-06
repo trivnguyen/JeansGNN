@@ -34,7 +34,7 @@ class OsipkovMerritt(DistributionFunction):
         """ Compute the velocity anisotropy of the Osipkov-Merrit distribution function.
         Equation:
         ```
-        beta(r) = beta_0 * (r / r_a)^2 / (1 + r / r_a)^2
+        beta(r) = beta_0 + (r / r_a)^2 / 1 + (r / r_a)^2
         ```
         where:
             beta_0: central velocity anisotropy
@@ -43,4 +43,4 @@ class OsipkovMerritt(DistributionFunction):
         beta_0 = self.parameters["beta_0"]
         r_a = self.parameters["r_a"]
         x = r / r_a
-        return beta_0 * x**2 / (1 + x)**2
+        return (beta_0 + x**2) / (1 + x**2)

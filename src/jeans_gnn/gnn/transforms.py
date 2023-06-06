@@ -70,7 +70,8 @@ class PhaseSpaceGraphProcessor():
             self,
             graph_name: str = "KNNGraph",
             graph_params: Optional[dict] = None,
-            log_radius: bool = False,
+            radius: bool = True,
+            log_radius: bool = True,
             edge_weight_name: Optional[str] = None,
             edge_weight_params: Optional[dict] = None,
             tensor_type: Union[str, torch.dtype] = torch.float32,
@@ -80,6 +81,10 @@ class PhaseSpaceGraphProcessor():
         ----------
         graph_name: str
             Name of the graph to use
+        graph_params: dict
+            Parameters for the graph
+        radius: bool
+            Use radius as features
         log_radius: bool
             Logarithmize the radius
         edge_weight_name: str
@@ -93,6 +98,7 @@ class PhaseSpaceGraphProcessor():
             edge_weight_params = {}
         self.graph_name = graph_name
         self.graph_params = graph_params
+        self.radius = radius
         self.log_radius = log_radius
         self.edge_weight_name = edge_weight_name
         self.edge_weight_params = edge_weight_params
@@ -158,10 +164,13 @@ class PhaseSpaceGraphProcessor():
         # reshape vel to (N, 1)
         vel = vel.reshape(-1, 1)
 
-        radius = torch.linalg.norm(pos, ord=2, dim=1, keepdims=True)
-        if self.log_radius:
-            return torch.hstack([torch.log10(radius), vel])
-        return torch.hstack([radius, vel])
+        if self.radius or self.log_radius:
+            radius = torch.linalg.norm(pos, ord=2, dim=1, keepdims=True)
+            if self.log_radius:
+                return torch.hstack([torch.log10(radius), vel])
+            return torch.hstack([radius, vel])
+        else:
+            return torch.hstack([pos, vel])
 
     def _parse_graph_name(self, graph_name, **kwargs):
         if graph_name in self.GRAPH_DICT:
