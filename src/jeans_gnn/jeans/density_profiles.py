@@ -32,12 +32,19 @@ class DensityProfile:
         # check if the array r is equally spaced
         dr = r[1] - r[0]
         if np.any(np.abs(np.diff(r) - dr) > 1e-6):
-            return integrate.cumtrapz(self.density(r), dx=dr, initial=0)
-        return integrate.cumtrapz(self.density(r), r, initial=0)
+            cmass = integrate.cumulative_trapezoid(
+                4 * np.pi * r**2 * self.density(r), dx=dr)
+        else:
+            cmass = integrate.cumulative_trapezoid(
+                4 * np.pi * r**2 * self.density(r), r)
+        cmass = np.append(cmass, cmass[-1])
+        return cmass
+
 
     def log_density(self, r: np.ndarray) -> np.ndarray:
         """ Compute the log10 density profile """
         raise NotImplementedError
+        
 
 class GeneralizedNFW(DensityProfile):
     """ Generalized NFW profile """

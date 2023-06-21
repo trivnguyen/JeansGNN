@@ -177,7 +177,8 @@ class GNNInferenceModel():
                 checkpoint_path=checkpoint,
                 model_hparams=self.model_params,
                 optimizer_hparams=self.optimizer_params,
-                scheduler_hparams=self.scheduler_params
+                scheduler_hparams=self.scheduler_params,
+                map_location=torch.device('cpu') if not torch.cuda.is_available() else None,
             )
         self.transform = transforms.PhaseSpaceGraphProcessor(
             **self.transform_params)

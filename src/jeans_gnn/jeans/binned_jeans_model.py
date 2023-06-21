@@ -170,8 +170,9 @@ class BinnedJeansModel(BilbyModule):
         nu = lp_profile.density(self.int_radius, projected=False)
 
         # integrate the 3d Jeans velocity dispersion equation
+        cmass = dm_profile.cumulative_mass(self.int_radius)
         sigma2_nu = utils.calc_sigma2_nu(
-            self.int_radius, dm_profile.cumulative_mass(self.int_radius), nu, gint)
+            self.int_radius, cmass, nu, gint)
 
         # integrate the 2d velocity dispersion equation
         sigma2p_Sigma = utils.calc_sigma2p_Sigma(
