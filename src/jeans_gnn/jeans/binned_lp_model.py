@@ -74,6 +74,9 @@ class BinnedLPModel(BilbyModule):
 
         Sigma, Sigma_lo, Sigma_hi, logRbins_lo, logRbins_hi = utils.calc_Sigma(
             radius, alpha=0.32, return_bounds=True)
+        Rbins_lo = 10**logRbins_lo
+        Rbins_hi = 10**logRbins_hi
+
         sig_lo = Sigma - Sigma_lo
         sig_hi = Sigma_hi - Sigma
         V1 = sig_lo * sig_hi
@@ -83,7 +86,8 @@ class BinnedLPModel(BilbyModule):
         self.Sigma = Sigma
         self.V1 = V1
         self.V2 = V2
-        self.Rbins_ce = 10**(0.5 * (logRbins_lo + logRbins_hi))
+        self.Rbins_ce = 0.5 * (Rbins_lo + Rbins_hi)
+
 
     def log_likelihood(self):
         """ Log likelihood function defined as:
