@@ -43,4 +43,4 @@ class OsipkovMerritt(DistributionFunction):
         beta_0 = self.parameters["beta_0"]
         r_a = self.parameters["r_a"]
         x = r / r_a
-        return (beta_0 + x^2) / (1 + x^2)
+        return (beta_0 + x**2) / (1 + x**2)
