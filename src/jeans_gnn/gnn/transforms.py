@@ -161,8 +161,9 @@ class PhaseSpaceGraphProcessor():
         vel: torch.Tensor
             Velocity tensor
         """
-        # reshape vel to (N, 1)
-        vel = vel.reshape(-1, 1)
+        # reshape vel to (N, 1) if 1 dimensional
+        if vel.ndim == 1:
+            vel = vel.reshape(-1, 1)
 
         if self.radius or self.log_radius:
             radius = torch.linalg.norm(pos, ord=2, dim=1, keepdims=True)
