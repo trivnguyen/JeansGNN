@@ -215,7 +215,9 @@ def create_dataloader_from_array(
     for i in range(len(pos)):
         # print every 10%
         if verbose:
-            if i % (len(pos) // 10) == 0:
+            if len(pos) < 10:
+                logger.info(f"Creating graph {i} / {len(pos)}")
+            elif i % (len(pos) // 10) == 0:
                 logger.info(f"Creating graph {i} / {len(pos)}")
         if labels is None:
             graph = transform(pos[i], vel[i])
