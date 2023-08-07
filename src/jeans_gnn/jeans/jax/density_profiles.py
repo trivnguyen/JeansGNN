@@ -34,9 +34,6 @@ class DensityProfile:
         cmass = jnp.insert(cmass, -1, cmass[-1])
         return cmass
 
-
-        return utils.jax_cumtrapz_init(self.density(r), r, initial=0)
-
     def log_density(self, r: jnp.array) -> jnp.array:
         """ Compute the log10 density profile """
         raise NotImplementedError
