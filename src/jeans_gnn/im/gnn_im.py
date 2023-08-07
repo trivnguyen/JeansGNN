@@ -218,6 +218,7 @@ class GNNInferenceModel():
             min_delta: float = 0.0,
             patience: int = 20,
             save_top_k: int = 2,
+            enable_progress_bar: bool = True,
         ):
         """ Fit the model
 
@@ -289,7 +290,8 @@ class GNNInferenceModel():
             devices=1 if torch.cuda.is_available() else 0,
             max_epochs=max_epochs,
             logger=CSVLogger(self.output_dir, name='lightning_log', version=''),
-            callbacks=callbacks
+            callbacks=callbacks,
+            enable_progress_bar=enable_progress_bar,
         )
 
         # fit the model
