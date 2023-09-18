@@ -14,7 +14,7 @@ from pytorch_lightning.loggers import CSVLogger
 from torch_geometric.data import DataLoader
 
 from .. import utils
-from ..gnn import graph_regressors, transforms
+from ..gnn import graph_regressors, graph_regressors_errors, transforms
 
 class GNNInferenceModel():
     """ Sample the dark matter density from kinematic data
@@ -66,9 +66,15 @@ class GNNInferenceModel():
         Sample parameters from the data
     """
 
+    GNN_MODULES = {
+        'GraphRegressor': graph_regressors.GraphRegressor,
+        'GraphRegressorWithErrors': graph_regressors_errors.GraphRegressorWithErrors,
+    }
+
     def __init__(
             self,
             run_name: str,
+            model_name: str='GraphRegressor',
             config_file: Optional[str] = None,
             model_params: Optional[dict] = None,
             optimizer_params: Optional[dict] = None,
@@ -83,6 +89,8 @@ class GNNInferenceModel():
         ----------
         run_name: str
             Name of the run
+        model_name: str
+            Name of the model
         config_file: str
             Path to the config file
         model_params: dict
@@ -130,6 +138,7 @@ class GNNInferenceModel():
             self.transform_params = transform_params
 
         self.run_name = run_name
+        self.model_name = model_name
         self.run_prefix = run_prefix
         self.output_dir = None
         self.model = None
@@ -167,13 +176,14 @@ class GNNInferenceModel():
     def _setup_model(self, resume: bool = False):
         """ Set up model and transformation """
         if not resume:
-            self.model = graph_regressors.GraphRegressorModule(
+            self.model = self._get_gnn_module(self.model_name)(
                 model_hparams=self.model_params,
                 optimizer_hparams=self.optimizer_params,
-                scheduler_hparams=self.scheduler_params)
+                scheduler_hparams=self.scheduler_params
+            )
         else:
             checkpoint = self._find_best_checkpoint()
-            self.model = graph_regressors.GraphRegressorModule.load_from_checkpoint(
+            self.model = self._get_gnn_module(self.model_name)(
                 checkpoint_path=checkpoint,
                 model_hparams=self.model_params,
                 optimizer_hparams=self.optimizer_params,
@@ -205,6 +215,12 @@ class GNNInferenceModel():
                 best_loss = loss
                 best_checkpoint = checkpoint
         return best_checkpoint
+
+    def _get_gnn_module(self. model_name: str):
+        """ Get the GNN module from model name """
+        if model_name not in self.GNN_MODULES:
+            raise ValueError(f"GNN module {model_name} not implemented")
+        return self.GNN_MODULES[model_name]
 
     def fit(
             self,
@@ -384,6 +400,7 @@ class GNNInferenceModel():
             run_dir: Optional[str] = None,
             run_name: Optional[str] = None,
             run_prefix: Optional[str] = None,
+            model_name: Optional[str] = None,
             config_file: Optional[str] = None,
             model_params: Optional[dict] = None,
             optimizer_params: Optional[dict] = None,
@@ -400,6 +417,8 @@ class GNNInferenceModel():
             Name of the run. Ignored if run_dir is provided
         run_prefix: str
             Prefix of the run. Ignored if run_dir is provided
+        model_name: str
+            Name of the model
         Returns
         -------
         sampler: Inference Model
@@ -423,6 +442,7 @@ class GNNInferenceModel():
             params = yaml.load(f, Loader=yaml.FullLoader)
         params['run_prefix'] = run_prefix
         params['run_name'] = run_name
+        params['model_name'] = model_name
 
         # create a Inference Model
         sampler = GNNInferenceModel(resume=True, **params)
