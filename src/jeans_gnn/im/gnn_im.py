@@ -67,14 +67,14 @@ class GNNInferenceModel():
     """
 
     GNN_MODULES = {
-        'GraphRegressor': graph_regressors.GraphRegressor,
-        'GraphRegressorWithErrors': graph_regressors_errors.GraphRegressorWithErrors,
+        'GraphRegressor': graph_regressors.GraphRegressorModule,
+        'GraphRegressorWithErrors': graph_regressors_errors.GraphRegressorWithErrorsModule,
     }
 
     def __init__(
             self,
             run_name: str,
-            model_name: str='GraphRegressor',
+            model_name: Optional[str] = None,
             config_file: Optional[str] = None,
             model_params: Optional[dict] = None,
             optimizer_params: Optional[dict] = None,
@@ -122,6 +122,7 @@ class GNNInferenceModel():
         if config_file is not None:
             with open(config_file, 'r') as f:
                 config = yaml.load(f, Loader=yaml.FullLoader)
+            self.model_name = config['model_name']
             self.model_params = config['model']
             self.optimizer_params = config['optimizer']
             self.scheduler_params = config['scheduler']
@@ -132,13 +133,13 @@ class GNNInferenceModel():
             self.scheduler_params.update(scheduler_params)
             self.transform_params.update(transform_params)
         else:
+            self.model_name = model_name
             self.model_params = model_params
             self.optimizer_params = optimizer_params
             self.scheduler_params = scheduler_params
             self.transform_params = transform_params
 
         self.run_name = run_name
-        self.model_name = model_name
         self.run_prefix = run_prefix
         self.output_dir = None
         self.model = None
@@ -162,6 +163,7 @@ class GNNInferenceModel():
         # write all params into yaml
         params = {
             'run_name': self.run_name,
+            'model_name': self.model_name,
             'run_prefix': self.run_prefix,
             'model_params': self.model_params,
             'optimizer_params': self.optimizer_params,
@@ -183,7 +185,7 @@ class GNNInferenceModel():
             )
         else:
             checkpoint = self._find_best_checkpoint()
-            self.model = self._get_gnn_module(self.model_name)(
+            self.model = self._get_gnn_module(self.model_name).load_from_checkpoint(
                 checkpoint_path=checkpoint,
                 model_hparams=self.model_params,
                 optimizer_hparams=self.optimizer_params,
@@ -216,7 +218,7 @@ class GNNInferenceModel():
                 best_checkpoint = checkpoint
         return best_checkpoint
 
-    def _get_gnn_module(self. model_name: str):
+    def _get_gnn_module(self, model_name: str):
         """ Get the GNN module from model name """
         if model_name not in self.GNN_MODULES:
             raise ValueError(f"GNN module {model_name} not implemented")
@@ -400,7 +402,6 @@ class GNNInferenceModel():
             run_dir: Optional[str] = None,
             run_name: Optional[str] = None,
             run_prefix: Optional[str] = None,
-            model_name: Optional[str] = None,
             config_file: Optional[str] = None,
             model_params: Optional[dict] = None,
             optimizer_params: Optional[dict] = None,
@@ -417,8 +418,6 @@ class GNNInferenceModel():
             Name of the run. Ignored if run_dir is provided
         run_prefix: str
             Prefix of the run. Ignored if run_dir is provided
-        model_name: str
-            Name of the model
         Returns
         -------
         sampler: Inference Model
@@ -442,7 +441,6 @@ class GNNInferenceModel():
             params = yaml.load(f, Loader=yaml.FullLoader)
         params['run_prefix'] = run_prefix
         params['run_name'] = run_name
-        params['model_name'] = model_name
 
         # create a Inference Model
         sampler = GNNInferenceModel(resume=True, **params)
