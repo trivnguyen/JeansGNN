@@ -1,0 +1,39 @@
+method: GNN
+
+model:
+  in_channels: 2
+  out_channels: 6
+  hidden_graph_channels: 128
+  num_graph_layers: 4
+  hidden_fc_channels: 128
+  num_fc_layers: 2
+  activation: relu
+  graph_layer_name: ChebConv
+  graph_layer_params:
+    K: 4
+    normalization: sym
+    bias: true
+  flow_params:
+    hidden_channels: 128
+    activation: tanh
+    num_blocks: 2
+    num_layers: 4
+
+optimizer:
+  type: AdamW
+  lr: 0.0005
+  betas:
+    - 0.9
+    - 0.999
+  weight_decay: 0.01
+
+scheduler:
+  type: ReduceLROnPlateau
+  factor: 0.1
+  patience: 10
+
+transform:
+  graph_name: KNNGraph
+  graph_params:
+    k: 1
+  log_radius: true

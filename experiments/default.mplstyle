@@ -1,0 +1,24 @@
+
+# latex
+text.usetex : True
+text.latex.preamble : \usepackage{amsmath}
+
+# font
+font.size : 20
+font.family : STIXGeneral
+
+# figure
+figure.figsize : 6, 4
+figure.facecolor : w
+
+# axes
+axes.linewidth: 2
+
+# ticks
+xtick.direction: in
+ytick.direction: in
+xtick.major.size: 10
+ytick.major.size: 10
+xtick.minor.size: 5
+ytick.minor.size: 5
+
