@@ -1,6 +1,7 @@
 
 from typing import Callable, Optional, Union, List
 
+import numpy as np
 import torch
 import torch_geometric
 from torch_geometric.nn import ChebConv, GATConv, GCNConv
@@ -13,22 +14,23 @@ from .graph_regressors import GraphRegressor
 class UniformErrorLayer(torch.nn.Module):
     """ Add error to the input features """
     def __init__(
-            self, min_error: torch.Tensor, max_error: torch.Tensor,
+            self, min_error: List, max_error: List,
             ignore_dims: Optional[List] = None):
         """
         Parameters
         ----------
-        min_error: torch.Tensor
-            Minimum error of shape (input_dimension)
+        min_error: list
+            Minimum error with length (input_dimension)
         max_error: torch.Tensor
-            Maximum error of shape (input_dimension)
+            Maximum error with length (input_dimension)
         ignore_dims: list of int
             Dimensions to ignore
         """
 
         super().__init__()
-        self.min_error = min_error
-        self.max_error = max_error
+        self.register_buffer('min_error', torch.tensor(min_error, dtype=torch.float32))
+        self.register_buffer('max_error', torch.tensor(max_error, dtype=torch.float32))
+
         self.ignore_dims = ignore_dims
         self.select_dims = np.arange(self.min_error.shape[0])
         # get all the chosen dimensions
@@ -37,10 +39,14 @@ class UniformErrorLayer(torch.nn.Module):
 
     def forward(self, x, return_error=True):
         """ Add errors to the input features of any shape """
-        errors = torch.rand_like(x) * (self.max_error - self.min_error) + self.min_error
+        max_error = self.max_error.to(x.device)
+        min_error = self.min_error.to(x.device)
+        errors = torch.rand_like(x) * (max_error - min_error) + min_error
         if self.ignore_dims is not None:
             errors[..., self.ignore_dims] = 0
-        x = x + errors
+
+        # convolve the errors with the input features
+        x = torch.randn_like(x) * errors + x
         if return_error:
             if self.ignore_dims is not None:
                 return x, errors[..., self.select_dims]
@@ -52,23 +58,24 @@ class UniformErrorLayer(torch.nn.Module):
 class GaussianErrorLayer(torch.nn.Module):
     """ Add error to the input features """
     def __init__(
-            self, mean: torch.Tensor, stdv: torch.Tensor,
+            self, mean: List, stdv: List,
             ignore_dims: Optional[List] = None):
         """
         Parameters
         ----------
-        mean_error: torch.Tensor
-            Mean error of shape (input_dimension)
-        std_error: torch.Tensor
-            Standard deviation error of shape (input_dimension)
+        mean: List
+            Mean error with length (input_dimension)
+        stdv: List
+            Standard deviation with length (input_dimension)
         ignore_dims: list of ints
             Dimensions to ignore
         """
         super().__init__()
-        self.mean = mean
-        self.stdv = stdv
+        self.register_buffer('mean', torch.tensor(mean, dtype=torch.float32))
+        self.register_buffer('stdv', torch.tensor(stdv, dtype=torch.float32))
+
         self.ignore_dims = ignore_dims
-        self.select_dims = np.arange(self.min_error.shape[0])
+        self.select_dims = np.arange(self.mean.shape[0])
         # get all the chosen dimensions
         if self.ignore_dims is not None:
             self.select_dims = np.delete(self.select_dims, self.ignore_dims)
@@ -77,10 +84,16 @@ class GaussianErrorLayer(torch.nn.Module):
     def forward(self, x, return_error=True):
         """ Add errors to the input features of any shape """
         # using the reparameterization trick
-        errors = torch.randn_like(x) * self.stdv + self.mean
+        mean = self.mean.to(x.device)
+        stdv = self.stdv.to(x.device)
+        errors = torch.randn_like(x) * stdv + mean
+        errors = torch.clamp(errors, min=0)
+
         if self.ignore_dims is not None:
             errors[..., self.ignore_dims] = 0
-        x = x + errors
+
+        # convolve the errors with the input features
+        x = torch.randn_like(x) * errors + x
         if return_error:
             if self.ignore_dims is not None:
                 return x, errors[..., self.select_dims]
@@ -93,13 +106,13 @@ class GraphRegressorWithErrors(GraphRegressor):
     """ Graph regressors with feature errors """
 
     ERROR_LAYERS = {
-        'uniform': UniformErrorLayer,
-        'gaussian': GaussianErrorLayer
+        'Uniform': UniformErrorLayer,
+        'Gaussian': GaussianErrorLayer,
     }
 
     def __init__(
             self, in_channels: int, error_layer_name: str,
-            error_layer_name: Optional[dict] = None, *args, **kargs):
+            error_layer_params: Optional[dict] = None, *args, **kargs):
         """
         Parameters
         ----------
@@ -198,3 +211,13 @@ class GraphRegressorWithErrors(GraphRegressor):
             raise ValueError(f"Error layer {error_layer_name} not implemented")
         return self.ERROR_LAYERS[error_layer_name](
             **error_layer_params)
+
+class GraphRegressorWithErrorsModule(BaseFlowModule):
+    """ Graph Regressor module """
+    def __init__(
+            self, model_hparams: Optional[dict] = None,
+            optimizer_hparams: Optional[dict] = None,
+            scheduler_hparams: Optional[dict] = None,
+        ) -> None:
+        super().__init__(
+            GraphRegressorWithErrors, model_hparams, optimizer_hparams, scheduler_hparams)
