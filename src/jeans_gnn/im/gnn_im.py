@@ -237,6 +237,10 @@ class GNNInferenceModel():
             patience: int = 20,
             save_top_k: int = 2,
             enable_progress_bar: bool = True,
+            accelerator: str = 'gpu',
+            strategy: str = 'ddp',
+            devices: int = 1,
+            num_nodes: int = 1,
         ):
         """ Fit the model
 
@@ -263,6 +267,14 @@ class GNNInferenceModel():
             Patience for early stopping
         save_top_k: int
             Number of best checkpoints to save
+        accelerator: str
+            Accelerator to use for training
+        strategy: str
+            Distributed training strategy
+        devices: int
+            Number of devices to use for training
+        num_nodes: int
+            Number of nodes to use for training
         """
         # Create data loaders
         pin_memory = True if torch.cuda.is_available() else False
@@ -304,8 +316,10 @@ class GNNInferenceModel():
                     mode="min", verbose=True))
         trainer = pl.Trainer(
             default_root_dir=self.output_dir,
-            accelerator="auto",
-            devices=1 if torch.cuda.is_available() else 0,
+            accelerator=accelerator,
+            strategy=strategy,
+            devices=devices,
+            num_nodes=num_nodes,
             max_epochs=max_epochs,
             logger=CSVLogger(self.output_dir, name='lightning_log', version=''),
             callbacks=callbacks,
@@ -441,6 +455,9 @@ class GNNInferenceModel():
             params = yaml.load(f, Loader=yaml.FullLoader)
         params['run_prefix'] = run_prefix
         params['run_name'] = run_name
+        # legacy support
+        if params.get('model_name') is None:
+            params['model_name'] = 'GraphRegressor'
 
         # create a Inference Model
         sampler = GNNInferenceModel(resume=True, **params)
