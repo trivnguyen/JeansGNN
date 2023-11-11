@@ -72,6 +72,7 @@ class PhaseSpaceGraphProcessor():
             graph_params: Optional[dict] = None,
             radius: bool = True,
             log_radius: bool = True,
+            use_vel_error: bool = False,
             edge_weight_name: Optional[str] = None,
             edge_weight_params: Optional[dict] = None,
             tensor_type: Union[str, torch.dtype] = torch.float32,
@@ -87,6 +88,8 @@ class PhaseSpaceGraphProcessor():
             Use radius as features
         log_radius: bool
             Logarithmize the radius
+        use_vel_error: bool
+            Use velocity error as features
         edge_weight_name: str
             Name of the edge weight function
         edge_weight_params: dict
@@ -100,6 +103,7 @@ class PhaseSpaceGraphProcessor():
         self.graph_params = graph_params
         self.radius = radius
         self.log_radius = log_radius
+        self.use_vel_error = use_vel_errors
         self.edge_weight_name = edge_weight_name
         self.edge_weight_params = edge_weight_params
         self.tensor_type = tensor_type
@@ -115,8 +119,7 @@ class PhaseSpaceGraphProcessor():
             'out_channels': 1,
         }
 
-    def __call__(self, pos: Tensor, vel: Tensor,
-                 label: Optional[Tensor] = None):
+    def __call__(self, pos: Tensor, vel: Tensor, label: Optional[Tensor] = None):
         """
         Parameters
         ----------
@@ -124,6 +127,8 @@ class PhaseSpaceGraphProcessor():
             Position tensor. Shape (N, 2)
         vel: torch.Tensor or numpy.ndarray
             Velocity tensor. Shape (N, 1)
+        vel_err: torch.Tensor or numpy.ndarray
+            Velocity error tensor. Shape (N, 1)
         label: torch.Tensor
             Label tensor. If None, return data without label
         """
@@ -132,13 +137,15 @@ class PhaseSpaceGraphProcessor():
             pos = torch.tensor(pos, dtype=self.tensor_type)
         if isinstance(vel, np.ndarray):
             vel = torch.tensor(vel, dtype=self.tensor_type)
+        if isinstance(vel_err, np.ndarray):
+            vel_err = torch.tensor(vel_err, dtype=self.tensor_type)
         if label is not None and isinstance(label, np.ndarray):
             label = torch.tensor(label, dtype=self.tensor_type)
             if label.ndim == 1:
                 label = label.reshape(1, -1)
 
         # transform into 1D feature vector
-        x = self.feature_preprocess(pos, vel)
+        x = self.feature_preprocess(pos, vel, vel_err)
 
         # create graph
         data = Data(pos=pos, x=x)
@@ -150,28 +157,38 @@ class PhaseSpaceGraphProcessor():
             data.y = label
         return data
 
-    def feature_preprocess(self, pos: Tensor, vel: Tensor):
+    def feature_preprocess(
+        self, pos: Tensor, vel: Tensor, vel_err: Tensor):
         """
         Transform 2D position and velocity into 1D feature vector
 
         Parameters
-        ----------
+        ----------s
         pos: torch.Tensor
             Position tensor
         vel: torch.Tensor
             Velocity tensor
+        vel_err: torch.Tensor
+            Velocity error tensor
         """
         # reshape vel to (N, 1) if 1 dimensional
         if vel.ndim == 1:
             vel = vel.reshape(-1, 1)
 
+        # if use radius instead of position
         if self.radius or self.log_radius:
             radius = torch.linalg.norm(pos, ord=2, dim=1, keepdims=True)
             if self.log_radius:
-                return torch.hstack([torch.log10(radius), vel])
-            return torch.hstack([radius, vel])
+                x = torch.hstack([torch.log10(radius), vel])
+            x = torch.hstack([radius, vel])
         else:
-            return torch.hstack([pos, vel])
+            x = torch.hstack([pos, vel])
+
+        # add velocity error
+        if self.use_vel_error:
+            x = torch.hstack([x, vel_err])
+
+        return x
 
     def _parse_graph_name(self, graph_name, **kwargs):
         if graph_name in self.GRAPH_DICT:
