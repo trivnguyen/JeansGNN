@@ -171,13 +171,13 @@ def create_dataloader_from_path(
         raise FileNotFoundError(f"Dataset not found: {dataset_path}")
 
     # read the dataset
-    features_list = ['pos', 'vel', 'vel_err', 'labels']
+    features_list = ['pos', 'vel', 'vel_error', 'labels']
     node_features, graph_features, headers = read_graph_dataset(
         dataset_path, features_list=features_list)
     pos = node_features['pos']
     vel = node_features['vel']
-    # if the dataset does not contain velocity error, set it to zero
-    vel_err = node_features.get('vel_err', np.zeros_like(vel))
+    # if the dataset does not contain velocity error
+    vel_error = node_features.get('vel_error')
 
     # print out dataset information
     if verbose:
@@ -189,11 +189,11 @@ def create_dataloader_from_path(
 
     # return dataloader
     return create_dataloader_from_array(
-        pos, vel, transform, vel_err=vel_err, labels=graph_features['labels'],
+        pos, vel, transform, vel_error=vel_error, labels=graph_features['labels'],
         verbose=verbose, **kwargs)
 
 def create_dataloader_from_array(
-        pos, vel, transform, vel_err=None, labels=None, verbose=True, **kwargs):
+        pos, vel, transform, vel_error=None, labels=None, verbose=True, **kwargs):
     """ Create a data loader from a dataset
     Parameters
     ----------
@@ -203,7 +203,7 @@ def create_dataloader_from_array(
         Array of shape (N, 1) containing the velocities of N particles
     transform: callable
         Transform function from coordinates to torch_geometric.data.Data
-    vel_err: np.ndarray
+    vel_error: np.ndarray
         Array of shape (N, 1) containing the velocity errors of N particles
         If None, assume to be zero
     labels: np.ndarray
@@ -221,10 +221,6 @@ def create_dataloader_from_array(
     if verbose:
         logger.info(f"Creating graph dataset")
 
-    # set velocity error to zero if not provided
-    if vel_err is None:
-        vel_err = np.zeros_like(vel)
-
     for i in range(len(pos)):
         # print every 10%
         if verbose:
@@ -235,7 +231,12 @@ def create_dataloader_from_array(
 
         # create a graph
         label_i = None if labels is None else labels[i]
-        graph = transform(pos[i], vel[i], vel_err[i], label=label_i)
+        if vel_error is None:
+            vel_error_i = np.zeros_like(vel[i])
+        else:
+            vel_error_i = vel_error[i]
+
+        graph = transform(pos[i], vel[i], vel_error_i, label=label_i)
         dataset.append(graph)
 
     # create a data loader
