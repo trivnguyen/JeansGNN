@@ -183,7 +183,8 @@ class PhaseSpaceGraphProcessor():
             radius = torch.linalg.norm(pos, ord=2, dim=1, keepdims=True)
             if self.log_radius:
                 x = torch.hstack([torch.log10(radius), vel])
-            x = torch.hstack([radius, vel])
+            else:
+                x = torch.hstack([radius, vel])
         else:
             x = torch.hstack([pos, vel])
 
