@@ -19,8 +19,8 @@ class DeepSet(torch.nn.Module):
         return self.layer(x)
 
 
-class GraphRegressor(torch.nn.Module):
-    """ Graph Regressor model
+class GraphRegressorCond(torch.nn.Module):
+    """ Graph Regressor model with FC layers for the context
 
     Attributes
     ----------
@@ -65,9 +65,14 @@ class GraphRegressor(torch.nn.Module):
     }
 
     def __init__(
-            self, in_channels: int, out_channels: int,
+            self,
+            in_channels: int,
+            in_context_channels: int,
+            out_channels: int,
             hidden_graph_channels: int = 1,
             num_graph_layers: int = 1,
+            hidden_context_channels: int = 1,
+            num_context_layers: int = 1,
             hidden_fc_channels: int = 1,
             num_fc_layers: int = 1,
             graph_layer_name: str = "ChebConv",
@@ -81,12 +86,18 @@ class GraphRegressor(torch.nn.Module):
         ----------
         in_channels: int
             Input dimension of the graph layers
+        in_context_channels: int
+            Input dimension of the context layers
         out_channels: int
             Output dimension of the normalizing flow
         hidden_graph_channels: int
             Hidden dimension
         num_graph_layers: int
             Number of graph layers
+        hidden_context_channels: int
+            Hidden dimension of the context layers
+        num_context_layers: int
+            Number of context layers
         hidden_fc_channels: int
             Hidden dimension of the fully connected layers
         num_fc_layers: int
@@ -115,16 +126,32 @@ class GraphRegressor(torch.nn.Module):
         # Create the graph layers
         self.graph_layers = torch.nn.ModuleList()
         for i in range(num_graph_layers):
-            n_in = in_channels if i == 0 else hidden_graph_channels
+            if i == 0:
+                n_in = in_channels
+            else:
+                n_in = hidden_graph_channels
             n_out = hidden_graph_channels
             self.graph_layers.append(
                 self._get_graph_layer(
                     n_in, n_out, graph_layer_name, graph_layer_params))
 
-        # Create FC layers
+        # Create the context layers
+        self.context_layers = torch.nn.ModuleList()
+        for i in range(num_context_layers):
+            if i == 0:
+                n_in = in_context_channels
+            else:
+                n_in = hidden_context_channels
+            n_out = hidden_context_channels
+            self.context_layers.append(torch.nn.Linear(n_in, n_out))
+
+        # Create FC layers for summary features
         self.fc_layers = torch.nn.ModuleList()
         for i in range(num_fc_layers):
-            n_in = hidden_fc_channels if i == 0 else hidden_fc_channels
+            if i == 0:
+                n_in = hidden_context_channels + hidden_graph_channels
+            else:
+                n_in = hidden_fc_channels
             n_out = hidden_fc_channels
             self.fc_layers.append(torch.nn.Linear(n_in, n_out))
 
@@ -146,7 +173,7 @@ class GraphRegressor(torch.nn.Module):
             channels=out_channels, context_channels=hidden_fc_channels,
             **flow_params)
 
-    def forward(self, x, edge_index, batch, edge_weight=None):
+    def forward(self, x, x_context, edge_index, batch, edge_weight=None):
         """ Forward pass of the model
 
         Parameters
@@ -163,8 +190,7 @@ class GraphRegressor(torch.nn.Module):
         x: torch.Tensor
             Output features as the flows context
         """
-        # Apply graph and FC layers to extract features as the flows context
-        # apply graph layers
+        # Apply graph layers to extract graph summary features
         for layer in self.graph_layers:
             if self.HAS_EDGE_WEIGHT[self.graph_layer_name]:
                 x = layer(x, edge_index, edge_weight=edge_weight)
@@ -174,7 +200,15 @@ class GraphRegressor(torch.nn.Module):
         # pool the features
         x = torch_geometric.nn.global_mean_pool(x, batch)
 
-        # apply FC layers
+        # Apply context layers to extract context features
+        for layer in self.context_layers:
+            x_context = layer(x_context)
+            x_context = self.activation(x_context, **self.activation_params)
+
+        # Concatenate graph and context features
+        x = torch.cat([x, x_context], dim=-1)
+
+        # Apply FC layers
         # do not apply activation function to the last layer
         for layer in self.fc_layers[:-1]:
             x = layer(x)
@@ -183,27 +217,22 @@ class GraphRegressor(torch.nn.Module):
 
         return x
 
-    def log_prob(self, batch, return_context=False, forward_args=None):
+    def log_prob(self, batch, return_context=False):
         """ Calculate log-likelihood from batch """
-        if forward_args is None:
-            forward_args = {}
         context = self.forward(
-            batch.x, batch.edge_index, batch.batch,
-            edge_weight=batch.edge_weight, **forward_args)
+            batch.x, batch.x_context, batch.edge_index, batch.batch,
+            edge_weight=batch.edge_weight)
         log_prob = self.flows.log_prob(batch.y, context=context)
 
         if return_context:
             return log_prob, context
         return log_prob
 
-    def sample(
-        self, batch, num_samples, return_context=False, forward_args=None):
+    def sample(self, batch, num_samples, return_context=False):
         """ Sample from batch """
-        if forward_args is None:
-            forward_args = {}
         context = self.forward(
-            batch.x, batch.edge_index, batch.batch,
-            edge_weight=batch.edge_weight, **forward_args)
+            batch.x, batch.x_context, batch.edge_index, batch.batch,
+            edge_weight=batch.edge_weight)
 
         y = self.flows.sample(num_samples, context=context)
 
@@ -212,11 +241,15 @@ class GraphRegressor(torch.nn.Module):
         return y
 
     def log_prob_from_context(self, x, context):
-        """ Return MAF log-likelihood P(x | context)"""
+        """ Return MAF log-likelihood P(x | context). Note that the context
+        in this case is the flows context, not the model context.
+        """
         return self.flows.log_prob(x, context=context)
 
     def sample_from_context(self, num_samples, context):
-        """ Sample P(x | context) """
+        """ Sample P(x | context). Note that the context in this case is the
+        flows context, not the model context.
+        """
         return self.flows.sample(num_samples, context=context)
 
     def _get_graph_layer(
@@ -243,7 +276,8 @@ class GraphRegressor(torch.nn.Module):
         return self.GRAPH_LAYERS[graph_layer_name](
             in_dim, out_dim, **graph_layer_params)
 
-class GraphRegressorModule(BaseFlowModule):
+
+class GraphRegressorCondModule(BaseFlowModule):
     """ Graph Regressor module """
     def __init__(
             self, model_hparams: Optional[dict] = None,
@@ -251,4 +285,4 @@ class GraphRegressorModule(BaseFlowModule):
             scheduler_hparams: Optional[dict] = None,
         ) -> None:
         super().__init__(
-            GraphRegressor, model_hparams, optimizer_hparams, scheduler_hparams)
+            GraphRegressorCond, model_hparams, optimizer_hparams, scheduler_hparams)

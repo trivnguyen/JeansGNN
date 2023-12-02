@@ -46,6 +46,7 @@ class ExponentialEdgeWeightDistance(T.BaseTransform):
     def __repr__(self) -> str:
         return (f'{self.__class__.__name__}(norm={self.norm})')
 
+
 class PhaseSpaceGraphProcessor():
     """
     Process phase space data into graph data

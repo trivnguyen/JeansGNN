@@ -1,7 +1,7 @@
 
 import os
 import glob
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Dict
 import logging
 import shutil
 
@@ -14,7 +14,8 @@ from pytorch_lightning.loggers import CSVLogger
 from torch_geometric.data import DataLoader
 
 from .. import utils
-from ..gnn import graph_regressors, graph_regressors_errors, transforms
+from ..gnn import graph_regressors, graph_regressors_errors
+from ..gnn import graph_regressors_cond, transforms
 
 class GNNInferenceModel():
     """ Sample the dark matter density from kinematic data
@@ -69,6 +70,7 @@ class GNNInferenceModel():
     GNN_MODULES = {
         'GraphRegressor': graph_regressors.GraphRegressorModule,
         'GraphRegressorWithErrors': graph_regressors_errors.GraphRegressorWithErrorsModule,
+        'GraphRegressorCond': graph_regressors_cond.GraphRegressorCondModule,
     }
 
     def __init__(
@@ -339,6 +341,7 @@ class GNNInferenceModel():
             device: Optional[torch.device] = None,
             return_labels: bool = False,
             to_numpy: bool = True,
+            forward_args: Optional[Dict] = None,
         ):
         """ Sample the posterior distribution
 
@@ -394,7 +397,7 @@ class GNNInferenceModel():
             for batch in data_loader:
                 batch = batch.to(device)
                 posterior = self.model.sample(
-                    batch, num_samples=num_samples)
+                    batch, num_samples=num_samples, forward_args=forward_args)
                 posteriors.append(posterior)
                 if return_labels:
                     labels.append(batch.y)

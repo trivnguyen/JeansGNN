@@ -147,7 +147,8 @@ class GraphRegressorWithErrors(GraphRegressor):
         x = torch.cat([x, error], axis=-1)
         return x
 
-    def forward(self, x, edge_index, batch, edge_weight=None):
+    def forward(
+            self, x, edge_index, batch, edge_weight=None, has_error=False):
         """ Forward pass of the model
         Parameters
         ----------
@@ -164,7 +165,9 @@ class GraphRegressorWithErrors(GraphRegressor):
             Output features as the flows context
         """
         # Add error to the input features before applying the graph layers
-        x = self._add_feature_errors(x)
+        if not has_error:
+            x = self._add_feature_errors(x)
+        # Apply graph and FC layers to extract features as the flows context
         x = self.forward_with_error(x, edge_index, batch, edge_weight)
         return x
 
