@@ -15,7 +15,7 @@ from torch_geometric.data import DataLoader
 
 from .. import utils
 from ..gnn import graph_regressors, graph_regressors_errors
-from ..gnn import graph_regressors_cond, transforms
+from ..gnn import graph_regressors_cond, preprocess
 
 class GNNInferenceModel():
     """ Sample the dark matter density from kinematic data
@@ -145,7 +145,7 @@ class GNNInferenceModel():
         self.run_prefix = run_prefix
         self.output_dir = None
         self.model = None
-        self.transform = None
+        self.preprocess = None
 
         # set up logger, model, and output directory
         self._setup_dir(resume=resume)
@@ -194,7 +194,7 @@ class GNNInferenceModel():
                 scheduler_hparams=self.scheduler_params,
                 map_location=torch.device('cpu') if not torch.cuda.is_available() else None,
             )
-        self.transform = transforms.PhaseSpaceGraphProcessor(
+        self.preprocess = preprocess.PhaseSpaceGraphProcessor(
             **self.transform_params)
 
     def _find_best_checkpoint(self):
@@ -286,7 +286,7 @@ class GNNInferenceModel():
                     "Either `train_loader` or `train_dataset_path` "
                     "must be provided")
             train_loader = utils.dataset.create_dataloader_from_path(
-                train_dataset_path, self.transform,
+                train_dataset_path, self.preprocess,
                 batch_size=batch_size, shuffle=True,
                 num_workers=num_workers, pin_memory=pin_memory)
 
@@ -296,7 +296,7 @@ class GNNInferenceModel():
                     "Validation dataset not found. Will not perform validation")
             else:
                 val_loader = utils.dataset.create_dataloader_from_path(
-                    val_dataset_path, self.transform,
+                    val_dataset_path, self.preprocess,
                     batch_size=batch_size, shuffle=False,
                     num_workers=num_workers, pin_memory=pin_memory)
 
@@ -384,7 +384,7 @@ class GNNInferenceModel():
                     "Either `data_loader` or `dataset_path` "
                     "must be provided")
             data_loader = utils.dataset.create_dataloader_from_path(
-                dataset_path, self.transform,
+                dataset_path, self.preprocess,
                 batch_size=batch_size, shuffle=False,
                 num_workers=num_workers, pin_memory=pin_memory)
 

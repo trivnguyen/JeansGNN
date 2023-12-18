@@ -149,13 +149,13 @@ def read_graph_dataset(path, features_list=None, concat=False, to_array=True):
     return node_features, graph_features, headers
 
 def create_dataloader_from_path(
-        dataset_path, transform, verbose=True, **kwargs):
+        dataset_path, preprocess, verbose=True, **kwargs):
     """ Create a data loader from a dataset
     Parameters
     ----------
     dataset_path: str
         Path to the dataset
-    transform: callable
+    preprocess: callable
         Transform function from coordinates to torch_geometric.data.Data
     verbose: bool
         Whether to print out the dataset information
@@ -189,11 +189,11 @@ def create_dataloader_from_path(
 
     # return dataloader
     return create_dataloader_from_array(
-        pos, vel, transform, vel_error=vel_error, labels=graph_features['labels'],
+        pos, vel, preprocess, vel_error=vel_error, labels=graph_features['labels'],
         verbose=verbose, **kwargs)
 
 def create_dataloader_from_array(
-        pos, vel, transform, vel_error=None, labels=None, verbose=True, **kwargs):
+        pos, vel, preprocess, vel_error=None, labels=None, verbose=True, **kwargs):
     """ Create a data loader from a dataset
     Parameters
     ----------
@@ -201,8 +201,8 @@ def create_dataloader_from_array(
         Array of shape (N, 2) containing the positions of N particles
     vel: np.ndarray
         Array of shape (N, 1) containing the velocities of N particles
-    transform: callable
-        Transform function from coordinates to torch_geometric.data.Data
+    preprocess: callable
+        Preprocess function from coordinates to torch_geometric.data.Data
     vel_error: np.ndarray
         Array of shape (N, 1) containing the velocity errors of N particles
         If None, assume to be zero
@@ -236,7 +236,7 @@ def create_dataloader_from_array(
         else:
             vel_error_i = vel_error[i]
 
-        graph = transform(pos[i], vel[i], vel_error_i, label=label_i)
+        graph = preprocess(pos[i], vel[i], vel_error_i, label=label_i)
         dataset.append(graph)
 
     # create a data loader

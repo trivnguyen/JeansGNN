@@ -11,97 +11,6 @@ from .flows import build_maf
 from .graph_regressors import GraphRegressor
 
 
-class UniformErrorLayer(torch.nn.Module):
-    """ Add error to the input features """
-    def __init__(
-            self, min_error: List, max_error: List,
-            ignore_dims: Optional[List] = None):
-        """
-        Parameters
-        ----------
-        min_error: list
-            Minimum error with length (input_dimension)
-        max_error: torch.Tensor
-            Maximum error with length (input_dimension)
-        ignore_dims: list of int
-            Dimensions to ignore
-        """
-
-        super().__init__()
-        self.register_buffer('min_error', torch.tensor(min_error, dtype=torch.float32))
-        self.register_buffer('max_error', torch.tensor(max_error, dtype=torch.float32))
-
-        self.ignore_dims = ignore_dims
-        self.select_dims = np.arange(self.min_error.shape[0])
-        # get all the chosen dimensions
-        if self.ignore_dims is not None:
-            self.select_dims = np.delete(self.select_dims, self.ignore_dims)
-
-    def forward(self, x, return_error=True):
-        """ Add errors to the input features of any shape """
-        max_error = self.max_error.to(x.device)
-        min_error = self.min_error.to(x.device)
-        errors = torch.rand_like(x) * (max_error - min_error) + min_error
-        if self.ignore_dims is not None:
-            errors[..., self.ignore_dims] = 0
-
-        # convolve the errors with the input features
-        x = torch.randn_like(x) * errors + x
-        if return_error:
-            if self.ignore_dims is not None:
-                return x, errors[..., self.select_dims]
-            return x, errors
-        else:
-            return x
-
-
-class GaussianErrorLayer(torch.nn.Module):
-    """ Add error to the input features """
-    def __init__(
-            self, mean: List, stdv: List,
-            ignore_dims: Optional[List] = None):
-        """
-        Parameters
-        ----------
-        mean: List
-            Mean error with length (input_dimension)
-        stdv: List
-            Standard deviation with length (input_dimension)
-        ignore_dims: list of ints
-            Dimensions to ignore
-        """
-        super().__init__()
-        self.register_buffer('mean', torch.tensor(mean, dtype=torch.float32))
-        self.register_buffer('stdv', torch.tensor(stdv, dtype=torch.float32))
-
-        self.ignore_dims = ignore_dims
-        self.select_dims = np.arange(self.mean.shape[0])
-        # get all the chosen dimensions
-        if self.ignore_dims is not None:
-            self.select_dims = np.delete(self.select_dims, self.ignore_dims)
-
-
-    def forward(self, x, return_error=True):
-        """ Add errors to the input features of any shape """
-        # using the reparameterization trick
-        mean = self.mean.to(x.device)
-        stdv = self.stdv.to(x.device)
-        errors = torch.randn_like(x) * stdv + mean
-        errors = torch.clamp(errors, min=0)
-
-        if self.ignore_dims is not None:
-            errors[..., self.ignore_dims] = 0
-
-        # convolve the errors with the input features
-        x = torch.randn_like(x) * errors + x
-        if return_error:
-            if self.ignore_dims is not None:
-                return x, errors[..., self.select_dims]
-            return x, errors
-        else:
-            return x
-
-
 class GraphRegressorWithErrors(GraphRegressor):
     """ Graph regressors with feature errors """
 
@@ -215,12 +124,49 @@ class GraphRegressorWithErrors(GraphRegressor):
         return self.ERROR_LAYERS[error_layer_name](
             **error_layer_params)
 
+
 class GraphRegressorWithErrorsModule(BaseFlowModule):
     """ Graph Regressor module """
     def __init__(
             self, model_hparams: Optional[dict] = None,
             optimizer_hparams: Optional[dict] = None,
             scheduler_hparams: Optional[dict] = None,
+            pre_transform_hparams: Optional[dict] = None,
         ) -> None:
+
+        # create the transformation
+        self.pre_transform = self._get_transform(pre_transform_hparams)
+
+        # recalculate the input and output dimensions
+
+
         super().__init__(
             GraphRegressorWithErrors, model_hparams, optimizer_hparams, scheduler_hparams)
+        self.pre_transform = self._get_transform(pre_transform_hparams)
+
+    def training_step(self, batch, batch_idx) -> FloatTensor:
+        batch_size = len(batch)
+
+        # apply transformation to the batch
+        batch = self.pre_transform(batch)
+
+        # apply forward and return log-likelihood and loss
+        log_prob = self.model.log_prob(batch)
+        loss = -log_prob.mean()
+
+        # log loss and return
+        self.log('train_loss', loss, on_epoch=True, batch_size=batch_size)
+
+    def validation_step(self, batch, batch_idx) -> FloatTensor:
+        batch_size = len(batch)
+
+        # apply transformation to the batch
+        batch = self.pre_transform(batch)
+
+        # apply forward and return log-likelihood and loss
+        log_prob = self.model.log_prob(batch)
+        loss = -log_prob.mean()
+
+        # log loss and return
+        self.log('val_loss', loss, on_epoch=True, batch_size=batch_size)
+        return loss
