@@ -14,8 +14,7 @@ from pytorch_lightning.loggers import CSVLogger
 from torch_geometric.data import DataLoader
 
 from .. import utils
-from ..gnn import graph_regressors, graph_regressors_errors
-from ..gnn import graph_regressors_cond, preprocess
+from ..gnn import graph_regressors, graph_regressors_cond, preprocess
 
 class GNNInferenceModel():
     """ Sample the dark matter density from kinematic data
@@ -34,6 +33,8 @@ class GNNInferenceModel():
         Parameters for the scheduler
     transform_params: dict
         Parameters for the transforms
+    pre_transform_params: dict
+        Parameters for the pre-transforms
 
     Methods
     -------
@@ -69,7 +70,6 @@ class GNNInferenceModel():
 
     GNN_MODULES = {
         'GraphRegressor': graph_regressors.GraphRegressorModule,
-        'GraphRegressorWithErrors': graph_regressors_errors.GraphRegressorWithErrorsModule,
         'GraphRegressorCond': graph_regressors_cond.GraphRegressorCondModule,
     }
 
@@ -82,6 +82,7 @@ class GNNInferenceModel():
             optimizer_params: Optional[dict] = None,
             scheduler_params: Optional[dict] = None,
             transform_params: Optional[dict] = None,
+            pre_transform_params: Optional[dict] = None,
             run_prefix: Optional[str] = None,
             resume: bool = False,
         ):
@@ -103,6 +104,8 @@ class GNNInferenceModel():
             Parameters for the scheduler. Overwrites config file `scheduler` if given
         transform_params: dict
             Parameters for the transforms. Overwrites config file `transform` if given
+        pre_transform_params: dict
+            Parameters for the pre-transforms. Overwrites config file `pre_transform` if given
         run_prefix: str
             Prefix of the run
         resume: bool
@@ -117,6 +120,8 @@ class GNNInferenceModel():
             scheduler_params = {}
         if transform_params is None:
             transform_params = {}
+        if pre_transform_params is None:
+            pre_transform_params = {}
         if run_prefix is None:
             run_prefix = ''
 
@@ -125,21 +130,25 @@ class GNNInferenceModel():
             with open(config_file, 'r') as f:
                 config = yaml.load(f, Loader=yaml.FullLoader)
             self.model_name = config['model_name']
-            self.model_params = config['model']
-            self.optimizer_params = config['optimizer']
-            self.scheduler_params = config['scheduler']
-            self.transform_params = config['transform']
+            self.model_params = config.get('model')
+            self.optimizer_params = config.get('optimizer')
+            self.scheduler_params = config.get('scheduler')
+            self.transform_params = config.get('transform')
+            self.pre_transform_params = config.get('pre_transform')
+
             # overwrite config file with given params
             self.model_params.update(model_params)
             self.optimizer_params.update(optimizer_params)
             self.scheduler_params.update(scheduler_params)
             self.transform_params.update(transform_params)
+            self.pre_transform_params.update(pre_transform_params)
         else:
             self.model_name = model_name
             self.model_params = model_params
             self.optimizer_params = optimizer_params
             self.scheduler_params = scheduler_params
             self.transform_params = transform_params
+            self.pre_transform_params = pre_transform_params
 
         self.run_name = run_name
         self.run_prefix = run_prefix
@@ -171,6 +180,7 @@ class GNNInferenceModel():
             'optimizer_params': self.optimizer_params,
             'scheduler_params': self.scheduler_params,
             'transform_params': self.transform_params,
+            'pre_transform_params': self.pre_transform_params,
         }
         with open(
             os.path.join(self.output_dir, 'params.yaml'),
@@ -183,7 +193,8 @@ class GNNInferenceModel():
             self.model = self._get_gnn_module(self.model_name)(
                 model_hparams=self.model_params,
                 optimizer_hparams=self.optimizer_params,
-                scheduler_hparams=self.scheduler_params
+                scheduler_hparams=self.scheduler_params,
+                pre_transform_hparams=self.pre_transform_params,
             )
         else:
             checkpoint = self._find_best_checkpoint()
@@ -192,6 +203,7 @@ class GNNInferenceModel():
                 model_hparams=self.model_params,
                 optimizer_hparams=self.optimizer_params,
                 scheduler_hparams=self.scheduler_params,
+                pre_transform_hparams=self.pre_transform_params,
                 map_location=torch.device('cpu') if not torch.cuda.is_available() else None,
             )
         self.preprocess = preprocess.PhaseSpaceGraphProcessor(
@@ -424,6 +436,7 @@ class GNNInferenceModel():
             optimizer_params: Optional[dict] = None,
             scheduler_params: Optional[dict] = None,
             transform_params: Optional[dict] = None,
+            pre_transform_params: Optional[dict] = None,
         ):
         """ Load a Inference Model from a directory
 

@@ -9,6 +9,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 from . import schedulers
+from . import transforms
 
 class BaseModule(pl.LightningModule):
     """
@@ -152,7 +153,8 @@ class BaseFlowModule(BaseModule):
             self, model: torch.nn.Module,
             model_hparams: Optional[dict] = None,
             optimizer_hparams: Optional[dict] = None,
-            scheduler_hparams: Optional[dict] = None
+            scheduler_hparams: Optional[dict] = None,
+            pre_transform_hparams: Optional[dict] = None,
         ) -> None:
         """
         Parameters
@@ -161,16 +163,32 @@ class BaseFlowModule(BaseModule):
                 Model module
             model_hparams: dict, optional
                 Model hyperparameters
-            transform_hparams: dict, optional
-                Transformation hyperparameters
             optimizer_hparams: dict, optional
                 Optimizer hyperparameters
+            scheduler_hparams: dict, optional
+                LR scheduler hyperparameters
+            pre_transform_hparams: dict, optional
+                Pre-transformation hyperparameters
         """
+        # create pre-transformation
+        if pre_transform_hparams is not None:
+            self.pre_transform = transforms.create_composite_transform(
+                pre_transform_hparams)
+            # recompute input and output dimensions
+            model_hparams['in_channels'] = self.pre_transform.recompute_indim(
+                model_hparams['in_channels'])
+            model_hparams['out_channels'] = self.pre_transform.recompute_outdim(
+                model_hparams['out_channels'])
+        else:
+            self.pre_transform = None
+
         super().__init__(
             model, model_hparams, optimizer_hparams, scheduler_hparams)
 
     def training_step(self, batch, batch_idx) -> FloatTensor:
         batch_size = len(batch)
+        if self.pre_transform is not None:
+            batch = self.pre_transform(batch)
 
         # apply forward and return log-likelihood and loss
         log_prob = self.model.log_prob(batch)
@@ -182,6 +200,8 @@ class BaseFlowModule(BaseModule):
 
     def validation_step(self, batch, batch_idx) -> FloatTensor:
         batch_size = len(batch)
+        if self.pre_transform is not None:
+            batch = self.pre_transform(batch)
 
         # apply forward and return log-likelihood and loss
         log_prob = self.model.log_prob(batch)

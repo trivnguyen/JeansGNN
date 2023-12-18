@@ -263,6 +263,8 @@ class GraphRegressorModule(BaseFlowModule):
             self, model_hparams: Optional[dict] = None,
             optimizer_hparams: Optional[dict] = None,
             scheduler_hparams: Optional[dict] = None,
+            pre_transform_hparams: Optional[dict] = None,
         ) -> None:
         super().__init__(
-            GraphRegressor, model_hparams, optimizer_hparams, scheduler_hparams)
+            GraphRegressor, model_hparams, optimizer_hparams, scheduler_hparams,
+            pre_transform_hparams)
