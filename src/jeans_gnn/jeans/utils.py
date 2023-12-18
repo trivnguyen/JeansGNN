@@ -222,5 +222,3 @@ def calc_sigma2p_Sigma(R, r, sigma2_nu, beta):
 
     sigma2p_Sigma = 2 * integrate.trapezoid(inte, axis=1, dx=dr)
     return sigma2p_Sigma
-
-

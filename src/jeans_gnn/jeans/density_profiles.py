@@ -44,7 +44,7 @@ class DensityProfile:
     def log_density(self, r: np.ndarray) -> np.ndarray:
         """ Compute the log10 density profile """
         raise NotImplementedError
-        
+
 
 class GeneralizedNFW(DensityProfile):
     """ Generalized NFW profile """

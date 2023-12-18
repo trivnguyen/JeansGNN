@@ -72,6 +72,7 @@ class GraphRegressor(torch.nn.Module):
             num_fc_layers: int = 1,
             graph_layer_name: str = "ChebConv",
             graph_layer_params: Optional[dict] = None,
+            layer_norm: bool = False,
             activation: Union[str, torch.nn.Module, Callable] = "relu",
             activation_params: Optional[dict] = None,
             flow_params: dict = None
@@ -95,6 +96,8 @@ class GraphRegressor(torch.nn.Module):
             Name of the graph layer
         graph_layer_params: dict
             Parameters of the graph layer
+        layer_norm: bool
+            Whether to use layer normalization
         activation: str or torch.nn.Module or Callable
             Activation function
         activation_params: dict
@@ -121,10 +124,19 @@ class GraphRegressor(torch.nn.Module):
                 self._get_graph_layer(
                     n_in, n_out, graph_layer_name, graph_layer_params))
 
+        # add layer normalization
+        if layer_norm:
+            self.graph_layers_norm = torch.nn.ModuleList()
+            for i in range(num_graph_layers):
+                self.graph_layers_norm.append(
+                    torch_geometric.nn.LayerNorm(hidden_graph_channels))
+        else:
+            self.graph_layers_norm = None
+
         # Create FC layers
         self.fc_layers = torch.nn.ModuleList()
         for i in range(num_fc_layers):
-            n_in = hidden_fc_channels if i == 0 else hidden_fc_channels
+            n_in = hidden_graph_channels if i == 0 else hidden_fc_channels
             n_out = hidden_fc_channels
             self.fc_layers.append(torch.nn.Linear(n_in, n_out))
 
@@ -165,11 +177,13 @@ class GraphRegressor(torch.nn.Module):
         """
         # Apply graph and FC layers to extract features as the flows context
         # apply graph layers
-        for layer in self.graph_layers:
+        for i, layer in enumerate(self.graph_layers):
             if self.HAS_EDGE_WEIGHT[self.graph_layer_name]:
                 x = layer(x, edge_index, edge_weight=edge_weight)
             else:
                 x = layer(x, edge_index)
+            if self.graph_layers_norm is not None:
+                x = self.graph_layers_norm[i](x)
             x = self.activation(x, **self.activation_params)
         # pool the features
         x = torch_geometric.nn.global_mean_pool(x, batch)
