@@ -114,18 +114,12 @@ class GNNInferenceModel():
             Resume from a previous run
         """
         # set default values
-        if model_params is None:
-            model_params = {}
-        if optimizer_params is None:
-            optimizer_params = {}
-        if scheduler_params is None:
-            scheduler_params = {}
-        if transform_params is None:
-            transform_params = {}
-        if pre_transform_params is None:
-            pre_transform_params = {}
-        if run_prefix is None:
-            run_prefix = ''
+        model_params = model_params or {}
+        optimizer_params = optimizer_params or {}
+        scheduler_params = scheduler_params or {}
+        transform_params = transform_params or {}
+        pre_transform_params = pre_transform_params or {}
+        run_prefix = run_prefix or ''
 
         # read config file
         if config_file is not None:
@@ -256,7 +250,7 @@ class GNNInferenceModel():
             save_top_k: int = 2,
             enable_progress_bar: bool = True,
             accelerator: str = 'gpu',
-            strategy: str = 'ddp',
+            strategy: str = 'auto',
             devices: int = 1,
             num_nodes: int = 1,
         ):
@@ -462,9 +456,7 @@ class GNNInferenceModel():
         sampler: Inference Model
         """
         if run_dir is None:
-            if run_prefix is None:
-                run_prefix = ''
-            # overwrite run_dir if provided
+            run_prefix = run_prefix or ''
             run_dir = os.path.join(run_prefix, run_name)
         else:
             run_name = os.path.basename(run_dir)
