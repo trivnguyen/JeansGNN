@@ -56,13 +56,12 @@ class BaseModule(pl.LightningModule):
                 LR scheduler hyperparameters
         """
         super().__init__()
-        if model_hparams is None:
-            model_hparams = {}
-        if optimizer_hparams is None:
-            optimizer_hparams = {}
-        if scheduler_hparams is None:
-            scheduler_hparams = {}
-
+        model_hparams = model_hparams or {}
+        optimizer_hparams = optimizer_hparams or {}
+        scheduler_hparams = scheduler_hparams or {}
+        self.model_hparams = model_hparams
+        self.optimizer_hparams = optimizer_hparams
+        self.scheduler_hparams = scheduler_hparams
         self.save_hyperparameters()
 
         # init model, transformation, and optimizer
@@ -72,40 +71,58 @@ class BaseModule(pl.LightningModule):
         """ Forward pass """
         return self.model(x, *args, **kargs)
 
-    def configure_optimizers(self) -> Union[Optimizer, dict]:
-        """ Initialize optimizer and LR scheduler """
 
-        # create optimizer
-        optimizer_args = self.hparams.optimizer_hparams.copy()
-        optimizer_name = optimizer_args.pop('type')
-        if optimizer_name == "Adam":
-            optimizer = torch.optim.Adam(self.parameters(), **optimizer_args)
-        elif optimizer_name  == "AdamW":
-            optimizer = torch.optim.AdamW(self.parameters(), **optimizer_args)
+    def configure_optimizers(optimizer_args, scheduler_args=None):
+        """ Return optimizer and scheduler for Pytorch Lightning """
+        scheduler_args = scheduler_args or {}
+
+        # setup the optimizer
+        if optimizer_args['type'] == "Adam":
+            return torch.optim.AdamW(
+                parameters(),
+                lr=optimizer_args.get('lr', 1e-3),
+                betas=optimizer_args.get('betas', (0.9, 0.999)),
+                weight_decay=optimizer_args.get('weight_decay', 0.0).
+                eps=optimizer_args.get('eps', 1e-8)
+            )
+        elif optimizer_args['type'] == "AdamW":
+            return torch.optim.AdamW(
+                parameters(),
+                lr=optimizer_args.get('lr', 1e-3),
+                betas=optimizer_args.get('betas', (0.9, 0.999)),
+                weight_decay=optimizer_args.get('weight_decay', 0.01).
+                eps=optimizer_args.get('eps', 1e-8)
+            )
         else:
             raise NotImplementedError(
-                'optimizer not implemented: {}'.format(optimizer_name))
+                "Optimizer {} not implemented".format(optimizer_args.get('type')))
 
-        # create scheduler
-        scheduler_args = self.hparams.scheduler_hparams.copy()
-        scheduler_name = scheduler_args.pop('type')
-        scheduler_interval = scheduler_args.pop('interval')
-        if scheduler_name == "ReduceLROnPlateau":
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer, **scheduler_args)
-        elif scheduler_name == "CosineAnnealingLR":
-            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                optimizer, **scheduler_args)
-        elif scheduler_name == "WarmUpCosineAnnealingLR":
-            scheduler = schedulers.WarmUpCosineAnnealingLR(
-                optimizer, **scheduler_args)
-        elif scheduler_name is None:
+        # setup the scheduler
+        if scheduler_args.get('type') is None:
             scheduler = None
+        elif scheduler_args.get('type') == 'ReduceLROnPlateau':
+            scheduler =  torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, 'min',
+                factor=scheduler_args.get('factor', 0.1),
+                patience=scheduler_args.get('patience', 10),
+            )
+        elif scheduler_args.get('type') == 'CosineAnnealingLR':
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer,
+                T_max=scheduler_args.get('T_max', 100),
+                eta_min=scheduler_args.get('eta_min', 0.0)
+            )
+        elif scheduler_args.get('type') == 'WarmUpCosineAnnealingLR':
+            scheduler = models_utils.WarmUpCosineAnnealingLR(
+                optimizer,
+                decay_steps=scheduler_args.get('decay_steps', 100),
+                warmup_steps=scheduler_args.get('warmup_steps', 10),
+                eta_min=scheduler_args.get('eta_min', 0.0)
+            )
         else:
             raise NotImplementedError(
-                'scheduler not implemented: {}'.format(scheduler_name))
+                "Scheduler {} not implemented".format(self.scheduler_args.get('type')))
 
-        # return optimizer and scheduler
         if scheduler is None:
             return optimizer
         else:
@@ -114,7 +131,7 @@ class BaseModule(pl.LightningModule):
                 'lr_scheduler': {
                     'scheduler': scheduler,
                     'monitor': 'train_loss',
-                    'interval': scheduler_interval,
+                    'interval': scheduler_args.get('interval', 'epoch'),
                     'frequency': 1
                 }
             }
