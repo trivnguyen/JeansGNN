@@ -217,22 +217,27 @@ class GraphRegressorCond(torch.nn.Module):
 
         return x
 
-    def log_prob(self, batch, return_context=False):
+    def log_prob(self, batch, return_context=False, forward_args=None):
         """ Calculate log-likelihood from batch """
+        if forward_args is None:
+            forward_args = {}
         context = self.forward(
             batch.x, batch.x_context, batch.edge_index, batch.batch,
-            edge_weight=batch.edge_weight)
+            edge_weight=batch.edge_weight, **forward_args)
         log_prob = self.flows.log_prob(batch.y, context=context)
 
         if return_context:
             return log_prob, context
         return log_prob
 
-    def sample(self, batch, num_samples, return_context=False):
+    def sample(
+        self, batch, num_samples, return_context=False, forward_args=None):
         """ Sample from batch """
+        if forward_args is None:
+            forward_args = {}
         context = self.forward(
             batch.x, batch.x_context, batch.edge_index, batch.batch,
-            edge_weight=batch.edge_weight)
+            edge_weight=batch.edge_weight, **forward_args)
 
         y = self.flows.sample(num_samples, context=context)
 
@@ -283,6 +288,8 @@ class GraphRegressorCondModule(BaseFlowModule):
             self, model_hparams: Optional[dict] = None,
             optimizer_hparams: Optional[dict] = None,
             scheduler_hparams: Optional[dict] = None,
+            pre_transform_hparams: Optional[dict] = None,
         ) -> None:
         super().__init__(
-            GraphRegressorCond, model_hparams, optimizer_hparams, scheduler_hparams)
+            GraphRegressorCond, model_hparams, optimizer_hparams,
+            scheduler_hparams, pre_transform_hparams)

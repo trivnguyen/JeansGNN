@@ -4,7 +4,7 @@ from typing import List
 import torch
 from .base_transform import BaseTransform
 
-class UniformError(BaseTransform):
+class UniformNoise(BaseTransform):
     """ Add uniform error to the input features """
     def __init__(
         self, min_error: float, max_error: float,
@@ -39,6 +39,7 @@ class UniformError(BaseTransform):
         """ Add errors to the input features of batch"""
         batch = batch.clone()
         with torch.no_grad():
+            self.index = self.index.to(batch.x.device)
             x = torch.index_select(batch.x, 1, self.index)
             max_error = self.max_error.to(x.device)
             min_error = self.min_error.to(x.device)
@@ -63,7 +64,7 @@ class UniformError(BaseTransform):
             return indim
 
 
-class NormalError(BaseTransform):
+class GaussianNoise(BaseTransform):
     """ Add Gaussian error to the input features """
     def __init__(
         self, mean: float, std: float,
@@ -93,6 +94,7 @@ class NormalError(BaseTransform):
         """ Add errors to the input features of batch"""
         batch = batch.clone()
         with torch.no_grad():
+            self.index = self.index.to(batch.x.device)
             x = torch.index_select(batch.x, 1, self.index)
             mean = self.mean.to(x.device)
             std = self.std.to(x.device)

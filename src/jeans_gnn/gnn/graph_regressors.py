@@ -215,15 +215,16 @@ class GraphRegressor(torch.nn.Module):
         """ Sample from batch """
         if forward_args is None:
             forward_args = {}
-        context = self.forward(
-            batch.x, batch.edge_index, batch.batch,
-            edge_weight=batch.edge_weight, **forward_args)
+        with torch.no_grad():
+            context = self.forward(
+                batch.x, batch.edge_index, batch.batch,
+                edge_weight=batch.edge_weight, **forward_args)
 
-        y = self.flows.sample(num_samples, context=context)
+            y = self.flows.sample(num_samples, context=context)
 
-        if return_context:
-            return y, context
-        return y
+            if return_context:
+                return y, context
+            return y
 
     def log_prob_from_context(self, x, context):
         """ Return MAF log-likelihood P(x | context)"""

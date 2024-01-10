@@ -74,9 +74,38 @@ class BaseModule(pl.LightningModule):
 
     def configure_optimizers(self) -> Union[Optimizer, dict]:
         """ Initialize optimizer and LR scheduler """
-        optimizer = self._get_optimizer()
-        scheduler = self._get_scheduler(optimizer)
 
+        # create optimizer
+        optimizer_args = self.hparams.optimizer_hparams.copy()
+        optimizer_name = optimizer_args.pop('type')
+        if optimizer_name == "Adam":
+            optimizer = torch.optim.Adam(self.parameters(), **optimizer_args)
+        elif optimizer_name  == "AdamW":
+            optimizer = torch.optim.AdamW(self.parameters(), **optimizer_args)
+        else:
+            raise NotImplementedError(
+                'optimizer not implemented: {}'.format(optimizer_name))
+
+        # create scheduler
+        scheduler_args = self.hparams.scheduler_hparams.copy()
+        scheduler_name = scheduler_args.pop('type')
+        scheduler_interval = scheduler_args.pop('interval')
+        if scheduler_name == "ReduceLROnPlateau":
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, **scheduler_args)
+        elif scheduler_name == "CosineAnnealingLR":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, **scheduler_args)
+        elif scheduler_name == "WarmUpCosineAnnealingLR":
+            scheduler = schedulers.WarmUpCosineAnnealingLR(
+                optimizer, **scheduler_args)
+        elif scheduler_name is None:
+            scheduler = None
+        else:
+            raise NotImplementedError(
+                'scheduler not implemented: {}'.format(scheduler_name))
+
+        # return optimizer and scheduler
         if scheduler is None:
             return optimizer
         else:
@@ -85,7 +114,7 @@ class BaseModule(pl.LightningModule):
                 'lr_scheduler': {
                     'scheduler': scheduler,
                     'monitor': 'train_loss',
-                    'interval': 'epoch',
+                    'interval': scheduler_interval,
                     'frequency': 1
                 }
             }
@@ -95,33 +124,6 @@ class BaseModule(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         raise NotImplementedError()
-
-    def _get_optimizer(self) -> Optimizer:
-        hparams = self.hparams.optimizer_hparams.copy()
-        optimizer = hparams.pop('type')
-        if optimizer == "Adam":
-            return torch.optim.Adam(self.parameters(), **hparams)
-        elif optimizer == "AdamW":
-            return torch.optim.AdamW(self.parameters(), **hparams)
-        else:
-            raise NotImplementedError(
-                "optimizer must be 'Adam' or 'AdamW', not {}".format(optimizer))
-
-    def _get_scheduler(self, optimizer: Optimizer) -> Union[_LRScheduler, None]:
-        """ Return LR scheduler """
-        hparams = self.hparams.scheduler_hparams.copy()
-        scheduler = hparams.pop('type')
-        if scheduler is None:
-            return None
-        elif scheduler == 'ReduceLROnPlateau':
-            return torch.optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer, 'min', **hparams)
-        elif scheduler == 'AttentionScheduler':
-            return schedulers.AttentionScheduler(optimizer, **hparams)
-        else:
-            raise NotImplementedError(
-                "scheduler must be 'ReduceLROnPlateau' or 'AttentionScheduler', "
-                "not {}".format(scheduler))
 
 
 class BaseFlowModule(BaseModule):
@@ -170,15 +172,17 @@ class BaseFlowModule(BaseModule):
             pre_transform_hparams: dict, optional
                 Pre-transformation hyperparameters
         """
-        # create pre-transformation
         if pre_transform_hparams is not None:
-            self.pre_transform = transforms.create_composite_transform(
-                pre_transform_hparams)
-            # recompute input and output dimensions
-            model_hparams['in_channels'] = self.pre_transform.recompute_indim(
-                model_hparams['in_channels'])
-            model_hparams['out_channels'] = self.pre_transform.recompute_outdim(
-                model_hparams['out_channels'])
+            if len(pre_transform_hparams) == 0:
+                self.pre_transform = None
+            else:
+                self.pre_transform = transforms.create_composite_transform(
+                    pre_transform_hparams)
+                # recompute input and output dimensions
+                model_hparams['in_channels'] = self.pre_transform.recompute_indim(
+                    model_hparams['in_channels'])
+                model_hparams['out_channels'] = self.pre_transform.recompute_outdim(
+                    model_hparams['out_channels'])
         else:
             self.pre_transform = None
 
@@ -195,7 +199,7 @@ class BaseFlowModule(BaseModule):
         loss = -log_prob.mean()
 
         # log loss and return
-        self.log('train_loss', loss, on_epoch=True, batch_size=batch_size)
+        self.log('train_loss', loss, on_epoch=True, on_step=True, batch_size=batch_size)
         return loss
 
     def validation_step(self, batch, batch_idx) -> FloatTensor:
@@ -208,7 +212,7 @@ class BaseFlowModule(BaseModule):
         loss = -log_prob.mean()
 
         # log loss and return
-        self.log('val_loss', loss, on_epoch=True, batch_size=batch_size)
+        self.log('val_loss', loss, on_epoch=True, on_step=True, batch_size=batch_size)
         return loss
 
     def sample(self, *args, **kargs):

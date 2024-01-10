@@ -2,11 +2,13 @@
 from typing import Dict
 
 from .base_transform import BaseTransform, CompositeTransform
-from .error_transform import UniformError, NormalError
+from .noise_transform import UniformNoise, GaussianNoise
+from .binary_stars_transform import AddBinaryPopulation
 
 ALL_TRANSFORMS = {
-    "UniformError": UniformError,
-    "NormalError": NormalError,
+    'UniformNoise': UniformNoise,
+    'GaussianNoise': GaussianNoise,
+    'AddBinaryPopulation': AddBinaryPopulation
 }
 
 def create_composite_transform(transform_dict: Dict) -> CompositeTransform:

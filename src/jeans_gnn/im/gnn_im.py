@@ -10,11 +10,12 @@ logger = logging.getLogger(__name__)
 import pytorch_lightning as pl
 import torch
 import yaml
-from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from torch_geometric.data import DataLoader
 
 from .. import utils
-from ..gnn import graph_regressors, graph_regressors_cond, preprocess
+from ..gnn import graph_regressors, graph_regressors_cond, transformer
+from ..gnn import preprocess
 
 class GNNInferenceModel():
     """ Sample the dark matter density from kinematic data
@@ -71,6 +72,7 @@ class GNNInferenceModel():
     GNN_MODULES = {
         'GraphRegressor': graph_regressors.GraphRegressorModule,
         'GraphRegressorCond': graph_regressors_cond.GraphRegressorCondModule,
+        'TransformerRegressor': transformer.TransformerRegressorModule,
     }
 
     def __init__(
@@ -328,6 +330,9 @@ class GNNInferenceModel():
                     min_delta=min_delta,
                     patience=patience,
                     mode="min", verbose=True))
+
+        train_logger = TensorBoardLogger(
+            self.output_dir, name='lightning_log', version=''),
         trainer = pl.Trainer(
             default_root_dir=self.output_dir,
             accelerator=accelerator,
@@ -335,9 +340,10 @@ class GNNInferenceModel():
             devices=devices,
             num_nodes=num_nodes,
             max_epochs=max_epochs,
-            logger=CSVLogger(self.output_dir, name='lightning_log', version=''),
+            logger=train_logger,
             callbacks=callbacks,
             enable_progress_bar=enable_progress_bar,
+            gradient_clip_val=0.5,
         )
 
         # fit the model
@@ -397,7 +403,7 @@ class GNNInferenceModel():
                     "must be provided")
             data_loader = utils.dataset.create_dataloader_from_path(
                 dataset_path, self.preprocess,
-                batch_size=batch_size, shuffle=False,
+                batch_size=batch_size, shuffle=Falgnfw-priorlarge-pois100-cheb-small/se,
                 num_workers=num_workers, pin_memory=pin_memory)
 
         # Make sure the model is in eval mode
