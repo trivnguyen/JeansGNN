@@ -192,6 +192,7 @@ class GNNInferenceModel():
     def _setup_model(self, resume: bool = False):
         """ Set up model and transformation """
         if not resume:
+            self.checkpoint = None
             self.model = self._get_gnn_module(self.model_name)(
                 model_hparams=self.model_params,
                 optimizer_hparams=self.optimizer_params,
@@ -200,6 +201,7 @@ class GNNInferenceModel():
             )
         else:
             checkpoint = self._find_best_checkpoint()
+            self.checkpoint = checkpoint
             self.model = self._get_gnn_module(self.model_name).load_from_checkpoint(
                 checkpoint_path=checkpoint,
                 model_hparams=self.model_params,
@@ -347,8 +349,10 @@ class GNNInferenceModel():
         )
 
         # fit the model
-        trainer.fit(self.model, train_loader, val_loader)
+        trainer.fit(
+            self.model, train_loader, val_loader, ckpt_path=self.checkpoint_path)
 
+    @torch.no_grad()
     def sample(
             self,
             num_samples: int,
@@ -408,17 +412,16 @@ class GNNInferenceModel():
 
         # Make sure the model is in eval mode
         self.model.eval()
-        with torch.no_grad():
-            # Iterate through the data loader
-            posteriors = []
-            labels = []
-            for batch in data_loader:
-                batch = batch.to(device)
-                posterior = self.model.sample(
-                    batch, num_samples=num_samples, forward_args=forward_args)
-                posteriors.append(posterior)
-                if return_labels:
-                    labels.append(batch.y)
+        # Iterate through the data loader
+        posteriors = []
+        labels = []
+        for batch in data_loader:
+            batch = batch.to(device)
+            posterior = self.model.sample(
+                batch, num_samples=num_samples, forward_args=forward_args)
+            posteriors.append(posterior)
+            if return_labels:
+                labels.append(batch.y)
         posteriors = torch.cat(posteriors, dim=0)
 
         if return_labels:
