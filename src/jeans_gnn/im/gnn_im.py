@@ -407,7 +407,7 @@ class GNNInferenceModel():
                     "must be provided")
             data_loader = utils.dataset.create_dataloader_from_path(
                 dataset_path, self.preprocess,
-                batch_size=batch_size, shuffle=Falgnfw-priorlarge-pois100-cheb-small/se,
+                batch_size=batch_size, shuffle=False,
                 num_workers=num_workers, pin_memory=pin_memory)
 
         # Make sure the model is in eval mode
