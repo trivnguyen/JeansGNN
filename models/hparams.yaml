@@ -1,0 +1,58 @@
+model: !!python/name:jeans_gnn.gnn.graph_regressors.GraphRegressor ''
+model_hparams: !!python/object:ml_collections.config_dict.config_dict.ConfigDict
+  _convert_dict: true
+  _fields:
+    activation: leaky_relu
+    activation_params: !!python/object:ml_collections.config_dict.config_dict.ConfigDict
+      _convert_dict: true
+      _fields:
+        negative_slope: 0.01
+      _locked: true
+      _type_safe: true
+    flow_params: !!python/object:ml_collections.config_dict.config_dict.ConfigDict
+      _convert_dict: true
+      _fields:
+        activation: tanh
+        hidden_channels: 128
+        num_blocks: 2
+        num_layers: 4
+      _locked: true
+      _type_safe: true
+    graph_layer_name: ChebConv
+    graph_layer_params: !!python/object:ml_collections.config_dict.config_dict.ConfigDict
+      _convert_dict: true
+      _fields:
+        K: 4
+        bias: true
+        normalization: sym
+      _locked: true
+      _type_safe: true
+    hidden_fc_channels: 128
+    hidden_graph_channels: 128
+    in_channels: 2
+    num_fc_layers: 2
+    num_graph_layers: 4
+    out_channels: 5
+  _locked: true
+  _type_safe: true
+optimizer_hparams: !!python/object:ml_collections.config_dict.config_dict.ConfigDict
+  _convert_dict: true
+  _fields:
+    betas:
+    - 0.9
+    - 0.999
+    lr: 0.0005
+    type: AdamW
+    weight_decay: 0.01
+  _locked: true
+  _type_safe: true
+pre_transform_hparams: {}
+scheduler_hparams: !!python/object:ml_collections.config_dict.config_dict.ConfigDict
+  _convert_dict: true
+  _fields:
+    factor: 0.5
+    interval: epoch
+    patience: 10
+    type: ReduceLROnPlateau
+  _locked: true
+  _type_safe: true
